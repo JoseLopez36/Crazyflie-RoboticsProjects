@@ -9,6 +9,7 @@ PROJECT_ROOT="$HOME/Crazyflie-RoboticsProjects"
 ROS2_WS="$PROJECT_ROOT/ros2_ws"
 FIRMWARE_DIR="$HOME/crazyflie-firmware"
 PYTHON_LIB_DIR="$HOME/crazyflie-lib-python"
+SCRIPTS_DIR="$PROJECT_ROOT/scripts"
 
 # Parse arguments
 SCRIPT_TO_EXECUTE="$1"
@@ -114,7 +115,7 @@ if [ "$RUN_SCRIPT" = true ]; then
     echo "Executing script. Press Ctrl+C to stop all processes..."
     echo ""
     # Execute the script/command
-    eval "$SCRIPT_CMD"
+    python3 "$SCRIPTS_DIR/$SCRIPT_TO_EXECUTE" --sim --uri "radio://0/80/2M/E7E7E7E701"
     SCRIPT_EXIT_CODE=$?
     echo ""
     if [ $SCRIPT_EXIT_CODE -eq 0 ]; then

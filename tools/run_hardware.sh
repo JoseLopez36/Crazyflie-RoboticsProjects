@@ -48,7 +48,7 @@ echo ""
 # Execute the script with hardware flag
 echo "Executing: python3 $SCRIPTS_DIR/$SCRIPT_NAME --hardware $*"
 echo ""
-python3 "$SCRIPTS_DIR/$SCRIPT_NAME" --hardware "$@"
+python3 "$SCRIPTS_DIR/$SCRIPT_NAME" --hardware "$@" --uri "radio://0/80/2M/E7E7E7E7E7"
 
 SCRIPT_EXIT_CODE=$?
 

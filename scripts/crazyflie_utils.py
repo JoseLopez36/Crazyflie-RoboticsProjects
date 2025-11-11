@@ -138,20 +138,13 @@ def connect_crazyflie(uri=None, mode='auto', force_sim=False, force_hardware=Fal
     if mode == 'auto':
         mode = detect_connection_mode(force_sim, force_hardware)
     
-    # Get URI if not provided
-    if uri is None:
-        crazyflies = scan_crazyflies(mode, force_sim, force_hardware)
-        
-        if not crazyflies:
-            logger.error("No Crazyflies found!")
-            return None
-        
-        if cf_id < 1 or cf_id > len(crazyflies):
-            logger.warning(f"cf_id {cf_id} out of range. Using first available.")
-            cf_id = 1
-        
-        _, uri = crazyflies[cf_id - 1]
-        logger.info(f"Connecting to Crazyflie #{cf_id} at {uri}")
+    # Scan for Crazyflies
+    crazyflies = scan_crazyflies(mode, force_sim, force_hardware)
+    if not crazyflies:
+        logger.error("No Crazyflies found!")
+        return None
+
+    logger.info(f"Connecting to Crazyflie at {uri}")
     
     # Create and connect
     try:
@@ -162,7 +155,7 @@ def connect_crazyflie(uri=None, mode='auto', force_sim=False, force_hardware=Fal
             cf.connected.add_callback(lambda uri: cf.param.add_update_callback(
                 group='radio', name='rssi', cb=link_quality_callback))
         
-        scf = SyncCrazyflie("radio://0/80/2M/E7E7E7E7E7", cf=cf)
+        scf = SyncCrazyflie(uri, cf=cf)
         scf.open_link()
         
         logger.info(f"Successfully connected to {uri}")

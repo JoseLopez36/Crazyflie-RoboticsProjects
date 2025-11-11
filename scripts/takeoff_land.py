@@ -34,8 +34,7 @@ def main():
     parser = argparse.ArgumentParser(description='Crazyflie takeoff and land example')
     parser.add_argument('--sim', action='store_true', help='Force simulation mode')
     parser.add_argument('--hardware', action='store_true', help='Force hardware mode')
-    parser.add_argument('--cf-id', type=int, default=1, help='Crazyflie ID to connect to (default: 1)')
-    parser.add_argument('--hover-thrust', type=int, default=35000, help='Hover thrust value (default: 35000)')
+    parser.add_argument('--uri', type=str, default="radio://0/80/2M/E7E7E7E701", help='Crazyflie URI to connect to (default: radio://0/80/2M/E7E7E7E701)')
     args = parser.parse_args()
     
     print("=== Crazyflie Takeoff and Land Example ===\n")
@@ -45,8 +44,8 @@ def main():
     print(f"Detected mode: {mode}\n")
     
     # Connect to Crazyflie
-    print(f"Connecting to Crazyflie #{args.cf_id}...")
-    with CrazyflieConnection(mode=mode, cf_id=args.cf_id, force_sim=args.sim, force_hardware=args.hardware) as connection:
+    print(f"Connecting to Crazyflie #{args.uri}...")
+    with CrazyflieConnection(mode=mode, uri=args.uri, force_sim=args.sim, force_hardware=args.hardware) as connection:
         if connection is None:
             print("Failed to connect!")
             return
@@ -54,7 +53,7 @@ def main():
         print("Connected successfully!\n")
 
         # Set up logging for position data
-        log_conf = LogConfig(name='Position Data', period_in_ms=100)
+        log_conf = LogConfig(name='Position Data', period_in_ms=1000)
         log_conf.add_variable('stateEstimate.x', 'float')
         log_conf.add_variable('stateEstimate.y', 'float')
         log_conf.add_variable('stateEstimate.z', 'float')
@@ -83,16 +82,22 @@ def main():
             print(f"  Y: {initial_position['y']:.3f} m")
             print(f"  Z: {initial_position['z']:.3f} m")
             
-            # Takeoff to 1.0 m - continuously send position commands
+            # Takeoff - continuously send position commands
             print("\n=== Takeoff Sequence ===")
-            print(f"Taking off to 1 m...")
-            connection.scf.cf.high_level_commander.takeoff(1.0, 5.0)
-            time.sleep(5.0)
-            
+            print(f"Taking off...")
+            connection.scf.cf.high_level_commander.takeoff(1.0, 2.0)
+            time.sleep(3.0)
+
+            # Hover at the same X, Y position
+            # for i in range(100):
+            #     connection.scf.cf.commander.send_hover_setpoint(0.0, 0.0, 0.0, 0.5)
+            #     time.sleep(0.1)
+            # time.sleep(2.0)
+
             # Land sequence - return to initial position
             print(f"Landing...")
-            connection.scf.cf.high_level_commander.land(0.05, 10.0)
-            time.sleep(10.0)
+            connection.scf.cf.high_level_commander.land(0.0, 3.0)
+            time.sleep(3.0)
 
             log_conf.stop()
             connection.scf.cf.high_level_commander.stop()

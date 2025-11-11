@@ -35,9 +35,9 @@ def main():
     parser = argparse.ArgumentParser(description='Crazyflie position control - square pattern')
     parser.add_argument('--sim', action='store_true', help='Force simulation mode')
     parser.add_argument('--hardware', action='store_true', help='Force hardware mode')
-    parser.add_argument('--cf-id', type=int, default=1, help='Crazyflie ID to connect to (default: 1)')
-    parser.add_argument('--side-length', type=float, default=0.5, help='Square side length in meters (default: 0.5)')
-    parser.add_argument('--height', type=float, default=1.0, help='Flight height in meters (default: 1.0)')
+    parser.add_argument('--uri', type=str, default="radio://0/80/2M/E7E7E7E701", help='Crazyflie URI to connect to (default: radio://0/80/2M/E7E7E7E701)')
+    parser.add_argument('--side-length', type=float, default=2.0, help='Square side length in meters (default: 0.5)')
+    parser.add_argument('--height', type=float, default=1.5, help='Flight height in meters (default: 1.0)')
     parser.add_argument('--waypoint-duration', type=float, default=3.0, help='Time to reach each waypoint in seconds (default: 3.0)')
     args = parser.parse_args()
     
@@ -48,8 +48,8 @@ def main():
     print(f"Detected mode: {mode}\n")
     
     # Connect to Crazyflie
-    print(f"Connecting to Crazyflie #{args.cf_id}...")
-    with CrazyflieConnection(mode=mode, cf_id=args.cf_id, force_sim=args.sim, force_hardware=args.hardware) as connection:
+    print(f"Connecting to Crazyflie at {args.uri}...")
+    with CrazyflieConnection(mode=mode, uri=args.uri, force_sim=args.sim, force_hardware=args.hardware) as connection:
         if connection is None:
             print("Failed to connect!")
             return
@@ -106,22 +106,9 @@ def main():
             
             # Takeoff to flight height - continuously send position commands
             print("\n=== Takeoff Sequence ===")
-            print(f"Taking off to {args.height} m...")
-            takeoff_duration = 3.0  # seconds
-            takeoff_steps = int(takeoff_duration / 0.1)  # Send command every 0.1s
-            
-            for i in range(takeoff_steps):
-                connection.scf.cf.commander.send_position_setpoint(
-                    initial_position['x'], 
-                    initial_position['y'], 
-                    args.height, 
-                    0
-                )
-                time.sleep(0.1)
-            
-            # Verify we're at the target position
-            print(f"Current position: X={current_position['x']:.3f} m, "
-                  f"Y={current_position['y']:.3f} m, Z={current_position['z']:.3f} m")
+            print(f"Taking off...")
+            connection.scf.cf.high_level_commander.takeoff(args.height, 3.0)
+            time.sleep(4.0)
             
             # Fly square pattern
             print("\n=== Flying Square Pattern ===")
@@ -150,36 +137,54 @@ def main():
                 print(f"  Reached: X={current_position['x']:.3f} m, "
                       f"Y={current_position['y']:.3f} m, Z={current_position['z']:.3f} m")
             
-            # Land sequence - return to initial position - continuously send commands
+            # Land sequence - smooth descent
             print("\n=== Landing Sequence ===")
-            print(f"Landing back to initial position...")
-            landing_duration = 3.0  # seconds
-            landing_steps = int(landing_duration / 0.1)
             
-            for i in range(landing_steps):
+            # Step 1: Return to initial X, Y position at current height (if not already there)
+            print("Returning to initial position...")
+            return_duration = 2.0  # seconds
+            return_steps = int(return_duration / 0.1)
+            for _ in range(return_steps):
                 connection.scf.cf.commander.send_position_setpoint(
-                    initial_position['x'], 
-                    initial_position['y'], 
-                    initial_position['z'], 
+                    initial_position['x'],
+                    initial_position['y'],
+                    current_position['z'],  # Maintain current height
                     0
                 )
                 time.sleep(0.1)
             
-            print(f"Final position: X={current_position['x']:.3f} m, "
-                  f"Y={current_position['y']:.3f} m, Z={current_position['z']:.3f} m")
+            # Step 2: Gradually descend in steps using position control
+            print("Descending smoothly...")
+            start_z = current_position['z']
+            target_landing_z = initial_position['z'] + 0.1  # Land slightly above initial Z (10cm buffer)
+            descent_steps = 15  # Number of descent steps (more steps = smoother)
+            descent_duration = 5.0  # Total descent time in seconds
+            step_duration = descent_duration / descent_steps
             
-            # Send a few more position commands to ensure stability
-            for _ in range(5):
-                connection.scf.cf.commander.send_position_setpoint(
-                    initial_position['x'], 
-                    initial_position['y'], 
-                    initial_position['z'], 
-                    0
-                )
-                time.sleep(0.1)
+            for i in range(descent_steps):
+                # Calculate target Z for this step (linear interpolation)
+                progress = (i + 1) / descent_steps
+                target_z = start_z - (start_z - target_landing_z) * progress
+                
+                step_steps = int(step_duration / 0.1)
+                for _ in range(step_steps):
+                    connection.scf.cf.commander.send_position_setpoint(
+                        initial_position['x'],
+                        initial_position['y'],
+                        target_z,
+                        0
+                    )
+                    time.sleep(0.1)
             
+            # Step 3: Final slow descent to ground using land command
+            print("Final landing...")
+            connection.scf.cf.high_level_commander.land(0.0, 2.5)  # Slow landing (2.5 seconds)
+            time.sleep(3.0)  # Wait for landing to complete
+
             log_conf.stop()
-            
+            connection.scf.cf.high_level_commander.stop()
+            time.sleep(0.1)
+
         except Exception as e:
             print(f"Error during flight: {e}")
             import traceback

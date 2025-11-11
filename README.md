@@ -47,7 +47,12 @@ $CRAZYFLIE_ROBOTICS_PROJECTS/docker/run.sh
 ### Inside the Container
 
 Once inside the container:
-1. **Build Crazyflie firmware SITL:**
+1. **Build ROS2 Workspace:**
+   ```bash
+   ~/Crazyflie-RoboticsProjects/tools/build.sh
+   ```
+
+2. **Build Crazyflie firmware SITL:**
    ```bash
    cd ~/crazyflie-firmware
    make menuconfig
@@ -63,19 +68,19 @@ Once inside the container:
    make -j
    ```
 
-2. **Start Gazebo simulation:**:
+3. **Start Gazebo simulation:**:
    ```bash
    source ~/Crazyflie-RoboticsProjects/ros2_ws/install/local_setup.bash
    ros2 launch sim_cf2 main.launch.xml
    ```
 
-3. **Run Crazyflie firmware SITL instances**:
+4. **Run Crazyflie firmware SITL instances**:
    ```bash
    cd ~/crazyflie-firmware/scripts/sim_cf2
    ./run_cfs.sh 1  # Runs 1 instance
    ```
 
-4. **Run example script**:
+**5**. **Run example script**:
    ```bash
    cd ~/crazyflie-lib-python/examples/sim_cf2
    python autonomousSequence.py
