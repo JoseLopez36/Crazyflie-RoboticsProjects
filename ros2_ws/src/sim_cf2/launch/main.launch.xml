@@ -19,8 +19,8 @@
     <arg name="tf_prefix_1" default="$(var cfPrefix)1" />
     <arg name="color_prop_front_1" default="Green" />
     <arg name="color_prop_back_1" default="Green" />
-    <arg name="x_1" default="0.5" />
-    <arg name="y_1" default="-0.5" />
+    <arg name="x_1" default="1.2" />
+    <arg name="y_1" default="-1.0" />
     <arg name="z_1" default="0.03" />
     <arg name="enable_mr_deck_1" default="true" />
     <arg name="mr_deck_visualize_1" default="true" />

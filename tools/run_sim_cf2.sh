@@ -2,7 +2,7 @@
 
 # Script to run Crazyflie SITL simulation (sim_cf2)
 # Usage: run_sim_cf2.sh [script_to_execute] [num_instances]
-#   script_to_execute: Optional path to script/command to execute at the end
+#   script_to_execute: Optional script to execute at the end
 #   num_instances: Optional number of CF instances (default: 1)
 
 PROJECT_ROOT="$HOME/Crazyflie-RoboticsProjects"
@@ -84,22 +84,8 @@ echo ""
 # Step 4: Execute user-provided script if specified
 if [ -n "$SCRIPT_TO_EXECUTE" ]; then
     echo "[4/4] Executing user script: $SCRIPT_TO_EXECUTE"
-    # Check if it's an executable file
-    if [ -f "$SCRIPT_TO_EXECUTE" ] && [ -x "$SCRIPT_TO_EXECUTE" ]; then
-        RUN_SCRIPT=true
-        SCRIPT_CMD="$SCRIPT_TO_EXECUTE"
-    # Check if it's a command in PATH
-    elif command -v "$SCRIPT_TO_EXECUTE" >/dev/null 2>&1; then
-        RUN_SCRIPT=true
-        SCRIPT_CMD="$SCRIPT_TO_EXECUTE"
-    # Check if it's a Python script
-    elif [ -f "$SCRIPT_TO_EXECUTE" ] && [[ "$SCRIPT_TO_EXECUTE" == *.py ]]; then
-        RUN_SCRIPT=true
-        SCRIPT_CMD="python $SCRIPT_TO_EXECUTE"
-    else
-        echo "Error: Script or command '$SCRIPT_TO_EXECUTE' not found or not executable"
-        RUN_SCRIPT=false
-    fi
+    RUN_SCRIPT=true
+    SCRIPT_CMD="python $PROJECT_ROOT/scripts/$SCRIPT_TO_EXECUTE"
 else
     echo "[4/4] No script specified to execute"
     RUN_SCRIPT=false
@@ -124,6 +110,7 @@ trap cleanup INT TERM
 
 # Execute script if provided, otherwise wait for user interrupt
 if [ "$RUN_SCRIPT" = true ]; then
+    sleep 2
     echo "Executing script. Press Ctrl+C to stop all processes..."
     echo ""
     # Execute the script/command

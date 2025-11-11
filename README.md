@@ -124,3 +124,20 @@ Simple scripts in `tools/` directory:
 - Unpauses Gazebo after firmware initialization
 - Optionally executes a user-provided script/command at the end
 
+### Python Scripts for Simulation and Hardware
+
+The `scripts/` directory contains Python scripts that work seamlessly with both **simulation (Gazebo)** and **real hardware**. These scripts automatically detect the connection mode and provide a unified API.
+
+**Key Features:**
+- Automatic detection of simulation vs hardware mode
+- Same code works for both simulation and hardware
+- Example scripts for common operations
+
+**Quick Start:**
+```bash
+# Takeoff and land example
+python scripts/takeoff_land.py
+
+# Position control example (square pattern)
+python scripts/position_control.py
+```
