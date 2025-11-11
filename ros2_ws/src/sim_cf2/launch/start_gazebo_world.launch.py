@@ -8,7 +8,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 
 def generate_launch_description():
-    world_file_name = 'basic.world'
+    world_file_name = 'lab_aux.world'
     package_name = "sim_cf2"
     pkg_gazebo_ros = FindPackageShare(package='gazebo_ros').find('gazebo_ros')
 

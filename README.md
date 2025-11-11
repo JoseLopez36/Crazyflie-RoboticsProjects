@@ -66,7 +66,7 @@ Once inside the container:
 3. **Run Crazyflie firmware SITL instances**:
    ```bash
    cd ~/crazyflie-firmware/scripts/sim_cf2
-   ./run_cfs.sh 2  # Runs 2 instances
+   ./run_cfs.sh 1  # Runs 1 instance
    ```
 
 4. **Run example script**:
@@ -102,9 +102,9 @@ Simple scripts in `tools/` directory:
 **Examples:**
 ```bash
 # Build workspace
-./tools/build.sh
+~/Crazyflie-RoboticsProjects/tools/build.sh
 
 # Run simulation with Navigation2
-./tools/run_sim.sh nav
+~/Crazyflie-RoboticsProjects/tools/run_sim.sh
 ```
 
