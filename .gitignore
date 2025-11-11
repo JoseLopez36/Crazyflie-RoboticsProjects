@@ -1,0 +1,43 @@
+# ROS2
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
+
+# Cursor
+.cursor/
