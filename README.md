@@ -1,6 +1,6 @@
 # Crazyflie Robotics Projects
 
-ROS2 workspace for Crazyflie drone simulation and development using Gazebo.
+This project is part of the **Robotics Projects** subject in the MSc. in Electronics, Robotics and Automation Engineering. It focuses on working with the Crazyflie 2.x drone platform in both simulation and real-world environments. The project uses the Crazyflie 2.0 for simulation and the Crazyflie 2.1 for real hardware, equipped with the multi-ranger deck (available in both simulation and real hardware) and optical flow sensor (real hardware only).
 
 ## Overview
 
@@ -22,7 +22,7 @@ This repository contains a Docker-based development environment for working with
 ### Set project environmental variable
 ```bash
 echo "export CRAZYFLIE_ROBOTICS_PROJECTS=/absolute/path/to/repo" >> ~/.bashrc
-source ~/.bashrc
+source ~/.bashrc # Sets it permanently
 ```
 
 ### Build the Docker Image
@@ -97,14 +97,30 @@ See `ros2_ws/src/crazyflie_rp_pkg/README.md` for detailed usage instructions.
 
 Simple scripts in `tools/` directory:
 - **`build.sh`** - Build the ROS2 workspace
-- **`run_sim.sh`** - Launch simulations (single, slam, or nav)
+- **`run_sim_cf2.sh`** - Launch Crazyflie SITL simulation (sim_cf2) with automatic setup
 
 **Examples:**
 ```bash
 # Build workspace
 ~/Crazyflie-RoboticsProjects/tools/build.sh
 
-# Run simulation with Navigation2
-~/Crazyflie-RoboticsProjects/tools/run_sim.sh
+# Run Crazyflie SITL simulation (automatically sources workspace, starts Gazebo, runs SITL instances, and unpauses)
+~/Crazyflie-RoboticsProjects/tools/run_sim_cf2.sh
+
+# Run with 2 Crazyflie instances
+~/Crazyflie-RoboticsProjects/tools/run_sim_cf2.sh "" 2
+
+# Run simulation and execute a Python script at the end
+~/Crazyflie-RoboticsProjects/tools/run_sim_cf2.sh ~/crazyflie-lib-python/examples/sim_cf2/autonomousSequence.py
+
+# Run with custom script and 2 instances
+~/Crazyflie-RoboticsProjects/tools/run_sim_cf2.sh ~/my_script.py 2
 ```
+
+**Note:** `run_sim_cf2.sh` automatically:
+- Sources the ROS2 workspace
+- Launches Gazebo simulation
+- Runs Crazyflie firmware SITL instances
+- Unpauses Gazebo after firmware initialization
+- Optionally executes a user-provided script/command at the end
 
