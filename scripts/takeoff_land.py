@@ -72,10 +72,6 @@ def main():
             # Reset estimator and wait for it to stabilize
             connection.reset_estimator()
             
-            # Wait a bit more to get stable position reading
-            print("Waiting for stable position estimate...")
-            time.sleep(2)
-            
             # Store initial position (X, Y) from logged position estimate
             global initial_position
             initial_position['x'] = current_position['x']
@@ -90,65 +86,17 @@ def main():
             # Takeoff to 1.0 m - continuously send position commands
             print("\n=== Takeoff Sequence ===")
             print(f"Taking off to 1 m...")
-            target_z = 1.0
-            takeoff_duration = 3.0  # seconds
-            takeoff_steps = int(takeoff_duration / 0.1)  # Send command every 0.1s
+            connection.scf.cf.high_level_commander.takeoff(1.0, 5.0)
+            time.sleep(5.0)
             
-            for i in range(takeoff_steps):
-                connection.scf.cf.commander.send_position_setpoint(
-                    initial_position['x'], 
-                    initial_position['y'], 
-                    target_z, 
-                    0
-                )
-                time.sleep(0.1)
-            
-            # Verify we're at the target position
-            print(f"Current position: X={current_position['x']:.3f} m, "
-                  f"Y={current_position['y']:.3f} m, Z={current_position['z']:.3f} m")
-            
-            # Hover at 1.0 m at the same X, Y position
-            print("\nHovering at 1.0 m at same X, Y position...")
-            hover_duration = 2.0  # seconds
-            hover_steps = int(hover_duration / 0.1)
-            for _ in range(hover_steps):
-                connection.scf.cf.commander.send_position_setpoint(
-                    initial_position['x'], 
-                    initial_position['y'], 
-                    target_z, 
-                    0
-                )
-                time.sleep(0.1)
-            
-            # Land sequence - return to initial position - continuously send commands
-            print("\n=== Landing Sequence ===")
-            print(f"Landing back to initial position...")
-            landing_duration = 3.0  # seconds
-            landing_steps = int(landing_duration / 0.1)
-            
-            for i in range(landing_steps):
-                connection.scf.cf.commander.send_position_setpoint(
-                    initial_position['x'], 
-                    initial_position['y'], 
-                    initial_position['z'], 
-                    0
-                )
-                time.sleep(0.1)
-            
-            print(f"Final position: X={current_position['x']:.3f} m, "
-                  f"Y={current_position['y']:.3f} m, Z={current_position['z']:.3f} m")
-            
-            # Send a few more position commands to ensure stability
-            for _ in range(5):
-                connection.scf.cf.commander.send_position_setpoint(
-                    initial_position['x'], 
-                    initial_position['y'], 
-                    initial_position['z'], 
-                    0
-                )
-                time.sleep(0.1)
-            
+            # Land sequence - return to initial position
+            print(f"Landing...")
+            connection.scf.cf.high_level_commander.land(0.05, 10.0)
+            time.sleep(10.0)
+
             log_conf.stop()
+            connection.scf.cf.high_level_commander.stop()
+            time.sleep(0.1)
             
         except Exception as e:
             print(f"Error during flight: {e}")

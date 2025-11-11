@@ -162,7 +162,7 @@ def connect_crazyflie(uri=None, mode='auto', force_sim=False, force_hardware=Fal
             cf.connected.add_callback(lambda uri: cf.param.add_update_callback(
                 group='radio', name='rssi', cb=link_quality_callback))
         
-        scf = SyncCrazyflie(uri, cf=cf)
+        scf = SyncCrazyflie("radio://0/80/2M/E7E7E7E7E7", cf=cf)
         scf.open_link()
         
         logger.info(f"Successfully connected to {uri}")
