@@ -14,8 +14,14 @@ This repository contains a Docker-based development environment for working with
 
 ## Prerequisites
 
+### For Simulation
 - Docker installed and running
 - X11 forwarding support (for GUI applications like Gazebo)
+
+### For Real Hardware
+- Docker installed and running
+- Crazyflie 2.1 drone
+- Crazy Radio PA or Crazy Radio dongle connected to your computer
 
 ## Quick Start
 
@@ -98,8 +104,9 @@ See `ros2_ws/src/crazyflie_rp_pkg/README.md` for detailed usage instructions.
 Simple scripts in `tools/` directory:
 - **`build.sh`** - Build the ROS2 workspace
 - **`run_sim_cf2.sh`** - Launch Crazyflie SITL simulation (sim_cf2) with automatic setup
+- **`run_hardware.sh`** - Launch Python scripts with real Crazyflie hardware
 
-**Examples:**
+#### Simulation Examples:
 ```bash
 # Build workspace
 ~/Crazyflie-RoboticsProjects/tools/build.sh
@@ -111,10 +118,10 @@ Simple scripts in `tools/` directory:
 ~/Crazyflie-RoboticsProjects/tools/run_sim_cf2.sh "" 2
 
 # Run simulation and execute a Python script at the end
-~/Crazyflie-RoboticsProjects/tools/run_sim_cf2.sh ~/crazyflie-lib-python/examples/sim_cf2/autonomousSequence.py
+~/Crazyflie-RoboticsProjects/tools/run_sim_cf2.sh takeoff_land.py
 
 # Run with custom script and 2 instances
-~/Crazyflie-RoboticsProjects/tools/run_sim_cf2.sh ~/my_script.py 2
+~/Crazyflie-RoboticsProjects/tools/run_sim_cf2.sh takeoff_land.py 2
 ```
 
 **Note:** `run_sim_cf2.sh` automatically:
@@ -124,6 +131,26 @@ Simple scripts in `tools/` directory:
 - Unpauses Gazebo after firmware initialization
 - Optionally executes a user-provided script/command at the end
 
+#### Real Hardware Examples:
+```bash
+# Run takeoff_land.py with real hardware (default script)
+~/Crazyflie-RoboticsProjects/tools/run_hardware.sh
+
+# Run takeoff_land.py with real hardware
+~/Crazyflie-RoboticsProjects/tools/run_hardware.sh takeoff_land.py
+
+# Run position_control.py with real hardware
+~/Crazyflie-RoboticsProjects/tools/run_hardware.sh position_control.py
+
+# Run with specific Crazyflie ID (if multiple drones are available)
+~/Crazyflie-RoboticsProjects/tools/run_hardware.sh takeoff_land.py --cf-id 2
+```
+
+**Note:** `run_hardware.sh` automatically:
+- Checks for radio dongle availability
+- Forces hardware mode (`--hardware` flag)
+- Connects to the first available Crazyflie (or specified `--cf-id`)
+
 ### Python Scripts for Simulation and Hardware
 
 The `scripts/` directory contains Python scripts that work seamlessly with both **simulation (Gazebo)** and **real hardware**. These scripts automatically detect the connection mode and provide a unified API.
@@ -132,12 +159,8 @@ The `scripts/` directory contains Python scripts that work seamlessly with both 
 - Automatic detection of simulation vs hardware mode
 - Same code works for both simulation and hardware
 - Example scripts for common operations
+- Support for multiple Crazyflie drones
 
-**Quick Start:**
-```bash
-# Takeoff and land example
-python scripts/takeoff_land.py
-
-# Position control example (square pattern)
-python scripts/position_control.py
-```
+**Available Scripts:**
+- **`takeoff_land.py`** - Basic takeoff, hover, and land sequence
+- **`position_control.py`** - Position control with square pattern flight
