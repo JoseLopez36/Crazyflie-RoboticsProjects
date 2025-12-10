@@ -85,19 +85,21 @@ def main():
             # Takeoff - continuously send position commands
             print("\n=== Takeoff Sequence ===")
             print(f"Taking off...")
-            connection.scf.cf.high_level_commander.takeoff(1.0, 2.0)
-            time.sleep(3.0)
 
-            # Hover at the same X, Y position
-            # for i in range(100):
-            #     connection.scf.cf.commander.send_hover_setpoint(0.0, 0.0, 0.0, 0.5)
-            #     time.sleep(0.1)
-            # time.sleep(2.0)
+            # Hover at the same X, Y position\
+            for i in range(100):
+                connection.scf.cf.commander.send_position_setpoint(
+                    initial_position['x'],
+                    initial_position['y'],
+                    1.0,
+                    0.0
+                )
+                time.sleep(0.1)
 
             # Land sequence - return to initial position
             print(f"Landing...")
             connection.scf.cf.high_level_commander.land(0.0, 3.0)
-            time.sleep(3.0)
+            time.sleep(20.0)
 
             log_conf.stop()
             connection.scf.cf.high_level_commander.stop()
@@ -117,4 +119,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
