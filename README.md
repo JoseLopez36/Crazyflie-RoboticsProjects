@@ -4,7 +4,7 @@ This project is part of the **Robotics Projects** subject in the MSc. in Electro
 
 ## Overview
 
-This repository contains a Docker-based development environment for working with the Crazyflie drone using ROS2 and Gazebo simulation. It is based on the [sim_cf2](https://github.com/CrazyflieTHI/sim_cf2) simulator, which provides a full software-in-the-loop (SITL) implementation of the Crazyflie firmware.
+This repository contains a Docker-based development environment for working with the Crazyflie drone using ROS2 and Gazebo simulation. It is based on the [crazyswarm2](https://github.com/IMRCLab/crazyswarm2) simulator, which provides a full software-in-the-loop (SITL) implementation of the Crazyflie firmware.
 
 ## Project Structure
 
@@ -27,21 +27,20 @@ This repository contains a Docker-based development environment for working with
 
 ### Set project environmental variable
 ```bash
-echo "export CRAZYFLIE_ROBOTICS_PROJECTS=/absolute/path/to/repo" >> ~/.bashrc
-source ~/.bashrc # Sets it permanently
+export CRAZYFLIE_ROBOTICSPROJECTS_PATH="/absolute/path/to/this/repo/root/on/host"
 ```
 
 ### Build the Docker Image
 
 ```bash
-docker build -t crazyflie-robotics-projects -f $CRAZYFLIE_ROBOTICS_PROJECTS/docker/Dockerfile .
+$ROBOTICSPROJECTS_CRAZYFLIE_PATH/docker/build.sh # This might take a while
 ```
 
 ### Run the Container (includes GUI support)
 
 For basic usage:
 ```bash
-$CRAZYFLIE_ROBOTICS_PROJECTS/docker/run.sh
+$ROBOTICSPROJECTS_CRAZYFLIE_PATH/docker/run.sh
 ```
 
 ### Inside the Container
@@ -49,32 +48,20 @@ $CRAZYFLIE_ROBOTICS_PROJECTS/docker/run.sh
 Once inside the container:
 1. **Build ROS2 Workspace:**
    ```bash
-   ~/Crazyflie-RoboticsProjects/tools/build.sh
+   $HOME/Crazyflie-RoboticsProjects/tools/build_workspace.sh
    ```
 
-2. **Build Crazyflie firmware SITL:**
+2. **Source ROS2 Workspace:**
    ```bash
-   cd ~/crazyflie-firmware
-   make menuconfig
-   ```
-   - In the gui interface of menuconfig first navigate to Build and debug options
-   - Select Build for SITL
-   - Switch to Platform configuration
-   - Select Build for SITL in the Platform to build window
-   - In the menu entry Expansion deck configuration make sure no decks are activated
-   - Save the configuration file and exit menuconfig
-
-   ```bash
-   make -j
+   $HOME/Crazyflie-RoboticsProjects/tools/source_workspace.sh
    ```
 
 3. **Start Gazebo simulation:**:
    ```bash
-   source ~/Crazyflie-RoboticsProjects/ros2_ws/install/local_setup.bash
-   ros2 launch sim_cf2 main.launch.xml
+   $HOME/Crazyflie-RoboticsProjects/tools/run_simulation.sh
    ```
 
-4. **Run Crazyflie firmware SITL instances**:
+3. **Run Crazyflie firmware SITL instances**:
    ```bash
    cd ~/crazyflie-firmware/scripts/sim_cf2
    ./run_cfs.sh 1  # Runs 1 instance

@@ -1,0 +1,16 @@
+# Tmuxinator generated files
+.tmuxinator.yml
+
+# Tmuxinator cache
+cache/
+*.json
+
+# Temporary files
+*.log
+*.tmp
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

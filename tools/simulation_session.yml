@@ -1,0 +1,13 @@
+name: simulation
+root: ./
+startup_window: crazyflies_start
+pre_window: |
+  source <%= @settings["setup_name"] %>
+  source /root/CrazySim/ros2_ws/install/setup.bash 
+  source /opt/ros/humble/setup.bash 
+windows:
+  - crazyflies_start:
+      layout: tiled
+      panes:
+        - bash ~/Crazyflie-RoboticsProjects/ros2_ws/src/crazyflie_robotics_projects_pkg/launch/sitl_multiagent_text.sh -m crazyflie -f $SPAWN_POSE_DOC -w $ENV_NAME
+        - waitForCfsGazebo;sleep 2; ros2 launch crazyflie_robotics_projects_pkg simulation_launch.py
