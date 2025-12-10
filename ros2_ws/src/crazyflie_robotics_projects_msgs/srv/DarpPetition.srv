@@ -1,0 +1,10 @@
+int32 min_x
+int32 max_x
+int32 min_y
+int32 max_y
+vision_msgs/Point2D[] initial_positions
+vision_msgs/Point2D[] obstacle_points
+bool visualization
+---
+crazyflie_robotics_projects_msgs/Trajectory2D[] trajectories
+int32[] zones

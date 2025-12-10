@@ -21,7 +21,13 @@ RUN apt-get update \
     python-is-python3 \
     curl \
     jq \
-    git
+    git \
+    tmux \
+    tmuxinator \
+    nano
+
+# Install Rviz2
+RUN apt-get install -y ros-${ROS2_DISTRO}-rviz2
 
 # Install Gazebo Garden
 RUN /bin/sh -c ' curl https://packages.osrfoundation.org/gazebo.gpg --output /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg' \
@@ -48,7 +54,8 @@ RUN apt-get install -y ros-${ROS2_DISTRO}-tf-transformations \
                         ros-${ROS2_DISTRO}-motion-capture-tracking \
                         ros-${ROS2_DISTRO}-nav2-lifecycle-manager \
                         ros-${ROS2_DISTRO}-rosbridge-suite \
-                        ros-${ROS2_DISTRO}-rosbag2-storage-mcap
+                        ros-${ROS2_DISTRO}-rosbag2-storage-mcap \
+                        ros-${ROS2_DISTRO}-vision-msgs
 RUN VERSION="releases/mcap-cli/v0.0.55" && \
     RELEASE_URL=$(curl -s https://api.github.com/repos/foxglove/mcap/releases | jq -r --arg VERSION "$VERSION" '.[] | select(.tag_name == $VERSION) | .assets[0].browser_download_url') && \
     echo "Downloading release $VERSION from: $RELEASE_URL" && \

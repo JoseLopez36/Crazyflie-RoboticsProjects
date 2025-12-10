@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>crazyflie_robotics_projects_pkg</name>
+  <version>1.0.0</version>
+  <description>
+    Main package for the Crazyflie Robotics Projects
+  </description>
+  <maintainer email="josloprui6@alum.us.es">José Francisco López Ruiz</maintainer>
+  <license>TODO: License declaration</license>
+
+  <depend>rclpy</depend>
+  
+  <depend>crazyflie_interfaces</depend>
+  <depend>crazyflie_py</depend>
+  <depend>crazyflie_sim</depend>
+  <depend>crazyflie_examples</depend>
+  <depend>crazyflie_robotics_projects_msgs</depend>
+  
+  <exec_depend>ros2launch</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

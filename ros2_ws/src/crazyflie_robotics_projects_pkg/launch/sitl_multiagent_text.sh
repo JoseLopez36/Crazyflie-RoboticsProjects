@@ -94,7 +94,7 @@ while IFS= read -r line || [ -n "$line" ];do
 	fields=($(printf "%s" "$line"|cut -d',' --output-delimiter=' ' -f1-))
 	spawn_model ${vehicle_model} $(($n)) ${fields[0]} ${fields[1]}
 	n=$(($n + 1))
-done < "$SCRIPT_DIR/drone_spawn_list/${coordinates_file}"
+done < "$SCRIPT_DIR/${coordinates_file}"
 
 trap "cleanup" SIGINT SIGTERM EXIT
 
