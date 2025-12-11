@@ -10,4 +10,4 @@ windows:
       layout: tiled
       panes:
         - bash /root/Crazyflie-RoboticsProjects/ros2_ws/src/crazyflie_robotics_projects_pkg/launch/sitl_multiagent_text.sh -m crazyflie -f $SPAWN_POSE_DOC -w $ENV_NAME
-        - waitForCfsGazebo;sleep 2; ros2 launch crazyflie_robotics_projects_pkg simulation_launch.py
+        - waitForCfsGazebo; sleep 2; source /root/ros2_ws/install/setup.bash; ros2 launch crazyflie_robotics_projects_pkg simulation_launch.py

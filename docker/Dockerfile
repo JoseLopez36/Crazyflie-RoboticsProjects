@@ -129,6 +129,16 @@ RUN cd $HOME/CrazySim/crazyflie-firmware \
     &&  cmake .. \
     &&  make all
 
+# Install crazyswarm2
+RUN mkdir -p $HOME/ros2_ws/src \
+  && cd $HOME/ros2_ws/src \
+  && git clone https://github.com/IMRCLab/crazyswarm2 --recursive
+
+# Replace crazyflie_server.py adapted for sitl
+RUN rm $HOME/ros2_ws/src/crazyswarm2/crazyflie/scripts/crazyflie_server.py
+COPY ../to_copy/crazyflie_server.py $HOME/ros2_ws/src/crazyswarm2/crazyflie/scripts/
+RUN chmod +x $HOME/ros2_ws/src/crazyswarm2/crazyflie/scripts/crazyflie_server.py
+
 # Install ROS2 dependencies
 RUN pip3 install rowan transforms3d nicegui
 RUN apt-get install -y ros-${ROS2_DISTRO}-tf-transformations \
@@ -144,8 +154,12 @@ RUN VERSION="releases/mcap-cli/v0.0.55" && \
     curl -L -o /bin/mcap "$RELEASE_URL" && \
     cd /bin && chmod +x mcap
 
+# Build crazyswarm2
+WORKDIR $HOME/ros2_ws
+RUN bash -c "source /opt/ros/${ROS2_DISTRO}/setup.bash; colcon build --symlink-install --merge-install --cmake-args=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON";
+
 # Add aliases for sourcing for ros2 and ros2 workspace
-RUN echo "alias ros2_ws='source $HOME/Crazyflie-RoboticsProjects/ros2_ws/install/setup.bash'" >> $HOME/.bashrc
+RUN echo "alias ros2_ws='source $HOME/Crazyflie-RoboticsProjects/ros2_ws/install/setup.bash && source $HOME/ros2_ws/install/setup.bash'" >> $HOME/.bashrc
 RUN echo "alias source_ros2='source /opt/ros/${ROS2_DISTRO}/setup.bash'" >> $HOME/.bashrc
 RUN echo "export PATH='$HOME/.local/bin:$PATH'" >> $HOME/.bashrc
 

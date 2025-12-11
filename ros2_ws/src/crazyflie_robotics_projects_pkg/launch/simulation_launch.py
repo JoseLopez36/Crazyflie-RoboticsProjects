@@ -44,7 +44,7 @@ def generate_launch_description():
     launch_description.append(
         Node(
             package='crazyflie',
-            executable='crazyflie_server',
+            executable='crazyflie_server.py',
             name='crazyflie_server',
             output='screen',
             parameters=server_params
@@ -58,14 +58,14 @@ def generate_launch_description():
             name='transform_world_2_odom',
             output='screen'
         ))
-        
-    # Start vel_mux node
+
+    # Start VelMux node
     vel_mux_node = Node(
         package='crazyflie',
-        executable='vel_mux',
+        executable='vel_mux.py',
         name='vel_mux',
-        output='screen',
         namespace='cf',
+        output='screen',
         parameters=[
             {"hover_height": 1.0},
             {"incoming_twist_topic": "cmd_vel"},
