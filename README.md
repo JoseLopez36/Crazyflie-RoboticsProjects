@@ -33,14 +33,14 @@ export CRAZYFLIE_ROBOTICSPROJECTS_PATH="/absolute/path/to/this/repo/root/on/host
 ### Build the Docker Image
 
 ```bash
-$ROBOTICSPROJECTS_CRAZYFLIE_PATH/docker/build.sh # This might take a while
+$CRAZYFLIE_ROBOTICSPROJECTS_PATH/docker/build.sh # This might take a while
 ```
 
 ### Run the Container (includes GUI support)
 
 For basic usage:
 ```bash
-$ROBOTICSPROJECTS_CRAZYFLIE_PATH/docker/run.sh
+$CRAZYFLIE_ROBOTICSPROJECTS_PATH/docker/run.sh
 ```
 
 ### Inside the Container

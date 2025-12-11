@@ -154,6 +154,15 @@ RUN VERSION="releases/mcap-cli/v0.0.55" && \
     curl -L -o /bin/mcap "$RELEASE_URL" && \
     cd /bin && chmod +x mcap
 
+# Install DARP dependencies
+RUN pip3 install --no-cache-dir --upgrade \
+    numpy==1.26.4 \
+    scipy \
+    scikit-learn \
+    opencv-python \
+    pygame \
+    numba
+
 # Build crazyswarm2
 WORKDIR $HOME/ros2_ws
 RUN bash -c "source /opt/ros/${ROS2_DISTRO}/setup.bash; colcon build --symlink-install --merge-install --cmake-args=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON";

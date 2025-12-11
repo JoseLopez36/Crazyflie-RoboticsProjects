@@ -14,6 +14,11 @@ def generate_launch_description():
         'config',
         'simulation_config.yaml')
 
+    mission_yaml = os.path.join(
+        get_package_share_directory('crazyflie_robotics_projects_pkg'),
+        'config',
+        'mission.yaml')
+
     with open(crazyflies_yaml, 'r') as ymlfile:
         crazyflies = yaml.safe_load(ymlfile)
 
@@ -49,30 +54,27 @@ def generate_launch_description():
             output='screen',
             parameters=server_params
         ))
-    
-    # Start TransformWorld2Odom node
-    launch_description.append(
-        Node(
-            package='crazyflie_robotics_projects_pkg',
-            executable='transform_world_2_odom',
-            name='transform_world_2_odom',
-            output='screen'
-        ))
 
-    # Start VelMux node
-    vel_mux_node = Node(
-        package='crazyflie',
-        executable='vel_mux.py',
-        name='vel_mux',
-        namespace='cf',
+    # Start DARP node
+    darp_node = Node(
+        package='crazyflie_robotics_projects_pkg',
+        executable='darp_node',
+        name='darp_node',
+        output='screen'
+    )
+    launch_description.append(darp_node)
+
+    # Start coordinator node
+    coordinator_node = Node(
+        package='crazyflie_robotics_projects_pkg',
+        executable='coordinator_node',
+        name='coordinator_node',
         output='screen',
         parameters=[
-            {"hover_height": 1.0},
-            {"incoming_twist_topic": "cmd_vel"},
-            {"robot_prefix": "/cf"}
+            mission_yaml
         ]
     )
-    launch_description.append(vel_mux_node)
+    launch_description.append(coordinator_node)
     
     # Start Rviz2 node
     launch_description.append(       

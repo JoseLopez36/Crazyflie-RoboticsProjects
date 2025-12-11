@@ -3,22 +3,21 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from crazyflie_robotics_projects_msgs.srv import DarpPetition
 from crazyflie_robotics_projects_msgs.msg import Trajectory2D
-from px4_msgs.msg import OffboardControlMode, VehicleLocalPosition, VehicleCommand, VehicleStatus
-from geometry_msgs.msg import PointStamped
+from crazyflie_interfaces.msg import Position
+from crazyflie_interfaces.srv import Takeoff, Land, Arm
+from geometry_msgs.msg import PoseStamped
 from vision_msgs.msg import Point2D
+from builtin_interfaces.msg import Duration
 import math
-import numpy as np
 
 class CoordinatorNode(Node):
     def __init__(self):
         super().__init__('coordinator_node')
 
-        # Parametros de los agentes
+        # Agents parameters
         self.declare_parameter('agents.ids', [''])
-        self.declare_parameter('agents.initial_positions_x', [0.0])
-        self.declare_parameter('agents.initial_positions_y', [0.0])
 
-        # Parametros de la peticion DARP
+        # DARP parameters
         self.declare_parameter('tasks.min_x', 0)
         self.declare_parameter('tasks.max_x', 0)
         self.declare_parameter('tasks.min_y', 0)
@@ -26,14 +25,12 @@ class CoordinatorNode(Node):
         self.declare_parameter('tasks.obstacles_positions_x', [0.0])
         self.declare_parameter('tasks.obstacles_positions_y', [0.0])
 
-        # Otros parametros
+        # Other parameters
         self.declare_parameter('target_altitude', 5.0)
         self.declare_parameter('acceptance_radius', 0.5)
 
-        # Obtener los parametros
+        # Get parameters
         self.agent_ids = self.get_parameter('agents.ids').get_parameter_value().string_array_value
-        self.initial_positions_x = self.get_parameter('agents.initial_positions_x').get_parameter_value().double_array_value
-        self.initial_positions_y = self.get_parameter('agents.initial_positions_y').get_parameter_value().double_array_value
         self.min_x = self.get_parameter('tasks.min_x').get_parameter_value().integer_value
         self.max_x = self.get_parameter('tasks.max_x').get_parameter_value().integer_value
         self.min_y = self.get_parameter('tasks.min_y').get_parameter_value().integer_value
@@ -42,154 +39,158 @@ class CoordinatorNode(Node):
         self.obstacles_positions_y = self.get_parameter('tasks.obstacles_positions_y').get_parameter_value().double_array_value
         self.target_altitude = self.get_parameter('target_altitude').get_parameter_value().double_value
         self.acceptance_radius = self.get_parameter('acceptance_radius').get_parameter_value().double_value
+
+        if not self.agent_ids:
+            self.get_logger().warn('No agents configured in agents.ids; the coordinator will not request DARP.')
         
-        # Cliente DARP
+        # DARP client
         self.darp_client = self.create_client(DarpPetition, 'darp_service')
         while not self.darp_client.wait_for_service(timeout_sec=0.5):
-            self.get_logger().info('Servicio DARP no disponible, esperando de nuevo...')
+            self.get_logger().info('DARP service not available, waiting for it...')
         
-        # QoS
+        # QoS profile
         qos_profile = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
-            depth=1
+            depth=10
         )
 
-        # Gestion de estado de los UAVs
+        # State management of the UAVs
         self.position_subscribers = {}
-        self.status_subscribers = {}
-        self.trajectory_publishers = {}
-        self.offboard_control_mode_publishers = {}
-        self.vehicle_command_publishers = {}
+        self.position_publishers = {}
+        self.takeoff_clients = {}
+        self.land_clients = {}
+        self.arm_clients = {}
         
         self.positions = {}
-        self.statuses = {}
         self.trajectories = {} # Key: agent_id, Value: List of Point2D
         self.current_wp_indices = {} # Key: agent_id, Value: int
-        self.setpoint_counts = {} # Key: agent_id, Value: int
-        self.agent_states = {} # Estados: INIT, TAKEOFF, MISSION, LANDED
+        self.agent_states = {} # States: INIT, TAKEOFF, MISSION, LANDED
+        self.position_received = {} # Key: agent_id, Value: bool
+        self.takeoff_requested = {} # Key: agent_id, Value: bool
+        self.arm_requested = {} # Key: agent_id, Value: bool
+        self.darp_request_sent = False
 
-        # Iterar sobre los agentes
+        # Iterate over the agents
         for agent_id in self.agent_ids:
-            # Suscriptores
-            # Suscripción a la posición del vehículo
+            # Subscribers
+            # Subscription to the agent position (crazyswarm2 uses /<agent_id>/pose)
             self.position_subscribers[agent_id] = self.create_subscription(
-                PointStamped,
-                f'/{agent_id}/state/position',
+                PoseStamped,
+                f'/{agent_id}/pose',
                 lambda msg, uid=agent_id: self.position_callback(msg, uid),
                 qos_profile
             )
-            
-            # Suscripción al estado del vehículo (para saber si está armado/offboard)
-            self.status_subscribers[agent_id] = self.create_subscription(
-                VehicleStatus,
-                f'/{agent_id}/fmu/out/vehicle_status',
-                lambda msg, uid=agent_id: self.status_callback(msg, uid),
-                qos_profile
-            )
 
-            # Publicadores
-            # Publicador de modo offboard (Heartbeat)
-            self.offboard_control_mode_publishers[agent_id] = self.create_publisher(
-                OffboardControlMode,
-                f'/{agent_id}/fmu/in/offboard_control_mode',
+            # Publishers
+            # Publisher of position commands (crazyswarm2 uses /<agent_id>/cmd_position)
+            self.position_publishers[agent_id] = self.create_publisher(
+                Position,
+                f'/{agent_id}/cmd_position',
                 qos_profile
             )
             
-            # Publicador de trayectoria (Setpoints)
-            self.trajectory_publishers[agent_id] = self.create_publisher(
-                PointStamped,
-                f'/{agent_id}/control/setpoint',
-                qos_profile
-            )
-            
-            # Publicador de comandos del vehículo (Armar, Modos)
-            self.vehicle_command_publishers[agent_id] = self.create_publisher(
-                VehicleCommand,
-                f'/{agent_id}/fmu/in/vehicle_command',
-                qos_profile
-            )
+            # Service clients for takeoff, land, and arm
+            self.takeoff_clients[agent_id] = self.create_client(Takeoff, f'/{agent_id}/takeoff')
+            self.land_clients[agent_id] = self.create_client(Land, f'/{agent_id}/land')
+            self.arm_clients[agent_id] = self.create_client(Arm, f'/{agent_id}/arm')
 
-            self.positions[agent_id] = PointStamped()
-            self.statuses[agent_id] = VehicleStatus()
+            self.positions[agent_id] = PoseStamped()
             self.trajectories[agent_id] = []
             self.current_wp_indices[agent_id] = 0
-            self.setpoint_counts[agent_id] = 0
             self.agent_states[agent_id] = 'INIT'
+            self.position_received[agent_id] = False
+            self.takeoff_requested[agent_id] = False
+            self.arm_requested[agent_id] = False
 
-        # Timer para el bucle de control (10Hz)
+        # Timer for the control loop (10Hz)
         self.timer = self.create_timer(0.1, self.control_loop)
-        
-        # Peticion de solucion DARP
-        self.request_darp()
+
+        self.get_logger().info('Waiting for initial positions of the agents to request DARP...')
 
     def position_callback(self, msg, agent_id):
         self.positions[agent_id] = msg
+        self.position_received[agent_id] = True
 
-    def status_callback(self, msg, agent_id):
-        self.statuses[agent_id] = msg
+        if not self.darp_request_sent and self._all_positions_received():
+            self.get_logger().info("Initial positions received. Requesting DARP...")
+            self.request_darp()
 
-    def get_px4_system_id(self, agent_id):
-        # Asume formato "px4_X" -> sistema X
-        try:
-            return int(agent_id.split('_')[-1])
-        except:
-            return 1
+    def _all_positions_received(self):
+        return (
+            bool(self.agent_ids) and
+            len(self.position_received) == len(self.agent_ids) and
+            all(self.position_received.values())
+        )
 
-    def publish_vehicle_command(self, agent_id, command, **params):
-        msg = VehicleCommand()
-        msg.command = command
-        msg.param1 = params.get("param1", 0.0)
-        msg.param2 = params.get("param2", 0.0)
-        msg.param3 = params.get("param3", 0.0)
-        msg.param4 = params.get("param4", 0.0)
-        msg.param5 = params.get("param5", 0.0)
-        msg.param6 = params.get("param6", 0.0)
-        msg.param7 = params.get("param7", 0.0)
-        
-        sys_id = self.get_px4_system_id(agent_id)
-        msg.target_system = sys_id + 1
-        msg.target_component = 1
-        msg.source_system = sys_id + 1
-        msg.source_component = 1
-        msg.from_external = True
-        msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
-        
-        self.vehicle_command_publishers[agent_id].publish(msg)
-
-    def publish_offboard_control_mode(self, agent_id):
-        msg = OffboardControlMode()
-        msg.position = True
-        msg.velocity = False
-        msg.acceleration = False
-        msg.attitude = False
-        msg.body_rate = False
-        msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
-        self.offboard_control_mode_publishers[agent_id].publish(msg)
-
-    def publish_trajectory_setpoint(self, agent_id, x, y, z):
-        # Envía setpoint en marco de referencia global
-        msg = PointStamped()
-        msg.point.x = float(x)
-        msg.point.y = float(y)
-        msg.point.z = float(z)
-        self.trajectory_publishers[agent_id].publish(msg)
+    def publish_position_command(self, agent_id, x, y, z, yaw=0.0):
+        # Publish position command using crazyswarm2 Position message
+        msg = Position()
+        msg.x = float(x)
+        msg.y = float(y)
+        msg.z = float(z)
+        msg.yaw = float(yaw)
+        self.position_publishers[agent_id].publish(msg)
 
     def arm(self, agent_id):
-        self.publish_vehicle_command(agent_id, VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, param1=1.0)
-        self.get_logger().info(f'{agent_id}: Enviando comando ARM')
+        """Arm the Crazyflie using crazyswarm2 service"""
+        if self.arm_requested.get(agent_id, False):
+            return
+        
+        if not self.arm_clients[agent_id].wait_for_service(timeout_sec=1.0):
+            self.get_logger().warn(f'{agent_id}: Arm service not available')
+            return
+        
+        req = Arm.Request()
+        req.arm = True
+        future = self.arm_clients[agent_id].call_async(req)
+        self.arm_requested[agent_id] = True
+        self.get_logger().info(f'{agent_id}: Sending ARM command')
 
     def disarm(self, agent_id):
-        self.publish_vehicle_command(agent_id, VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, param1=0.0)
-        self.get_logger().info(f'{agent_id}: Enviando comando DISARM')
+        """Disarm the Crazyflie using crazyswarm2 service"""
+        if not self.arm_clients[agent_id].wait_for_service(timeout_sec=1.0):
+            self.get_logger().warn(f'{agent_id}: Arm service not available')
+            return
+        
+        req = Arm.Request()
+        req.arm = False
+        future = self.arm_clients[agent_id].call_async(req)
+        self.get_logger().info(f'{agent_id}: Sending DISARM command')
 
-    def engage_offboard_mode(self, agent_id):
-        self.publish_vehicle_command(agent_id, VehicleCommand.VEHICLE_CMD_DO_SET_MODE, param1=1.0, param2=6.0)
-        self.get_logger().info(f"{agent_id}: Cambiando a modo OFFBOARD")
+    def takeoff(self, agent_id, height, duration_sec=2.0):
+        """Takeoff the Crazyflie using crazyswarm2 service"""
+        if self.takeoff_requested.get(agent_id, False):
+            return
+        
+        if not self.takeoff_clients[agent_id].wait_for_service(timeout_sec=1.0):
+            self.get_logger().warn(f'{agent_id}: Takeoff service not available')
+            return
+        
+        req = Takeoff.Request()
+        req.height = float(height)
+        req.duration = Duration()
+        req.duration.sec = int(duration_sec)
+        req.duration.nanosec = int((duration_sec - int(duration_sec)) * 1e9)
+        req.group_mask = 0
+        future = self.takeoff_clients[agent_id].call_async(req)
+        self.takeoff_requested[agent_id] = True
+        self.get_logger().info(f'{agent_id}: Sending TAKEOFF command to height {height}m')
 
     def request_darp(self):
-        self.get_logger().info("Peticion de algoritmo DARP...")
+        if not self.agent_ids:
+            self.get_logger().error("No agents configured, cannot request DARP.")
+            return
+
+        if self.darp_request_sent:
+            return
+
+        if not self._all_positions_received():
+            self.get_logger().warn("Not all positions of the agents have been received. DARP is not requested yet.")
+            return
+
+        self.get_logger().info("Requesting DARP algorithm...")
+        self.darp_request_sent = True
         req = DarpPetition.Request()
         req.min_x = self.min_x
         req.max_x = self.max_x
@@ -197,22 +198,23 @@ class CoordinatorNode(Node):
         req.max_y = self.max_y
         req.visualization = False
 
-        # Obstaculos
+        # Obstacles
         obs_x = self.obstacles_positions_x
         obs_y = self.obstacles_positions_y
+        if len(obs_x) != len(obs_y):
+            self.get_logger().warn("Lists of obstacles with different lengths, the least number of elements will be used.")
         for x, y in zip(obs_x, obs_y):
             p = Point2D()
             p.x = x
             p.y = y
             req.obstacle_points.append(p)
 
-        # Posiciones iniciales
-        init_x = self.initial_positions_x
-        init_y = self.initial_positions_y
-        for x, y in zip(init_x, init_y):
+        # Initial positions from the current measurements
+        for agent_id in self.agent_ids:
+            pos = self.positions[agent_id].pose.position
             p = Point2D()
-            p.x = x
-            p.y = y
+            p.x = pos.x
+            p.y = pos.y
             req.initial_positions.append(p)
 
         future = self.darp_client.call_async(req)
@@ -222,93 +224,93 @@ class CoordinatorNode(Node):
         try:
             response = future.result()
             if not response.trajectories:
-                self.get_logger().error("DARP devolvio trayectorias vacias")
+                self.get_logger().error("DARP returned empty trajectories")
+                self.darp_request_sent = False
                 return
 
-            self.get_logger().info(f"Solucion DARP recibida con {len(response.trajectories)} trayectorias")
+            self.get_logger().info(f"DARP solution received with {len(response.trajectories)} trajectories")
             
             for i, traj in enumerate(response.trajectories):
                 if i < len(self.agent_ids):
                     agent_id = self.agent_ids[i]
                     self.trajectories[agent_id] = traj.points
                     self.current_wp_indices[agent_id] = 0
-                    self.get_logger().info(f"Trayectoria asignada de longitud {len(traj.points)} a {agent_id}")
+                    self.get_logger().info(f"Trajectory assigned of length {len(traj.points)} to {agent_id}")
                 else:
-                    self.get_logger().warn(f"Mas trayectorias que UAVs: Trayectoria {i} ignorada")
+                    self.get_logger().warn(f"More trajectories than UAVs: Trajectory {i} ignored")
 
         except Exception as e:
-            self.get_logger().error(f'Llamada al servicio fallida: {e}')
+            self.get_logger().error(f'Call to service failed: {e}')
+            self.darp_request_sent = False
 
     def control_loop(self):
         for i, agent_id in enumerate(self.agent_ids):
-            # Enviar Heartbeat de Offboard
-            self.publish_offboard_control_mode(agent_id)
-            
-            # Obtener el estado del agente
+            # Get the state of the agent
             state = self.agent_states[agent_id]
             current_pos = self.positions[agent_id]
-            current_status = self.statuses[agent_id]
             
-            # --- Estado: INIT (Espera inicial y Armado) ---
+            # --- State: INIT (Initial wait and Arming) ---
             if state == 'INIT':
-                # Enviar setpoint 0,0,-alt
-                self.publish_trajectory_setpoint(agent_id, current_pos.point.x, current_pos.point.y, self.target_altitude)
+                # Wait for position to be received
+                if not self.position_received.get(agent_id, False):
+                    continue
                 
-                self.setpoint_counts[agent_id] += 1
+                # Arm the drone
+                if not self.arm_requested.get(agent_id, False):
+                    self.arm(agent_id)
+                    continue
                 
-                # Después de unos ciclos, intentar armar y pasar a offboard
-                if self.setpoint_counts[agent_id] > 10:
-                    if current_status.nav_state != VehicleStatus.NAVIGATION_STATE_OFFBOARD:
-                        self.engage_offboard_mode(agent_id)
-                    
-                    if current_status.arming_state != VehicleStatus.ARMING_STATE_ARMED:
-                        self.arm(agent_id)
-                        
-                    # Si ya está en offboard y armado, pasar a despegue
-                    if (current_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and 
-                        current_status.arming_state == VehicleStatus.ARMING_STATE_ARMED):
-                        self.agent_states[agent_id] = 'TAKEOFF'
-                        self.get_logger().info(f"{agent_id}: Iniciando TAKEOFF")
+                # After arming, request takeoff
+                if not self.takeoff_requested.get(agent_id, False):
+                    self.takeoff(agent_id, self.target_altitude, duration_sec=2.0)
+                    self.agent_states[agent_id] = 'TAKEOFF'
+                    self.get_logger().info(f"{agent_id}: Starting TAKEOFF")
 
-            # --- Estado: TAKEOFF (Despegue vertical) ---
+            # --- State: TAKEOFF (Vertical takeoff) ---
             elif state == 'TAKEOFF':
-                # Mantener setpoint de altura
-                self.publish_trajectory_setpoint(agent_id, current_pos.point.x, current_pos.point.y, self.target_altitude)
+                # Maintain position at current x,y and target altitude
+                current_x = current_pos.pose.position.x
+                current_y = current_pos.pose.position.y
+                self.publish_position_command(agent_id, current_x, current_y, self.target_altitude)
                 
-                # Verificar altura
-                if current_pos.point.z >= (self.target_altitude - 0.5): # Margen de 0.5m
-                     self.agent_states[agent_id] = 'MISSION'
-                     self.get_logger().info(f"{agent_id}: Despegue completado. Iniciando MISION")
+                # Check altitude (with margin of 0.5m)
+                if current_pos.pose.position.z >= (self.target_altitude - 0.5):
+                    self.agent_states[agent_id] = 'MISSION'
+                    self.get_logger().info(f"{agent_id}: Takeoff completed. Starting MISSION")
 
-            # --- Estado: MISSION (Seguimiento de trayectoria DARP) ---
+            # --- State: MISSION (Follow DARP trajectory) ---
             elif state == 'MISSION':
                 traj_points = self.trajectories.get(agent_id, [])
                 if not traj_points:
-                    # Si no hay trayectoria, mantener posición actual (hover)
-                    self.publish_trajectory_setpoint(agent_id, current_pos.point.x, current_pos.point.y, self.target_altitude)
+                    # If there is no trajectory, maintain current position (hover)
+                    current_x = current_pos.pose.position.x
+                    current_y = current_pos.pose.position.y
+                    self.publish_position_command(agent_id, current_x, current_y, self.target_altitude)
                     continue
 
                 idx = self.current_wp_indices.get(agent_id, 0)
                 
                 if idx >= len(traj_points):
-                    # Fin de trayectoria: Mantener último punto
+                    # End of trajectory: Maintain last point
                     target_pos = traj_points[-1]
                 else:
                     target_pos = traj_points[idx]
                     
-                    # Calcular distancia al objetivo
-                    dx = float(target_pos.x) - float(current_pos.point.x)
-                    dy = float(target_pos.y) - float(current_pos.point.y)
+                    # Calculate distance to target
+                    current_x = current_pos.pose.position.x
+                    current_y = current_pos.pose.position.y
+                    dx = float(target_pos.x) - float(current_x)
+                    dy = float(target_pos.y) - float(current_y)
                     d = math.sqrt(dx**2 + dy**2)
                     
                     if d < self.acceptance_radius:
                         self.current_wp_indices[agent_id] += 1
                         if self.current_wp_indices[agent_id] < len(traj_points):
-                            self.get_logger().info(f"{agent_id} ha llegado al punto {idx}. Moviendo a {self.current_wp_indices[agent_id]}")
+                            self.get_logger().info(f"{agent_id} has reached point {idx}. Moving to {self.current_wp_indices[agent_id]}")
                             target_pos = traj_points[self.current_wp_indices[agent_id]]
 
-                # Publicar punto de trayectoria
-                self.publish_trajectory_setpoint(agent_id, target_pos.x, target_pos.y, self.target_altitude)
+                # Publish trajectory point
+                self.publish_position_command(agent_id, target_pos.x, target_pos.y, self.target_altitude)
 
 def main(args=None):
     rclpy.init(args=args)

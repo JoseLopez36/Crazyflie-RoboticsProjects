@@ -24,8 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'coordinator_node = crazyflie_robotics_projects_pkg.coordinator_node:main',
-            'darp_node = crazyflie_robotics_projects_pkg.darp_node:main',
-            'transform_world_2_odom = crazyflie_robotics_projects_pkg.transform_world_2_odom:main'
+            'darp_node = crazyflie_robotics_projects_pkg.darp_node:main'
         ],
     },
 )
