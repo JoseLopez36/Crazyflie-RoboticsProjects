@@ -136,7 +136,7 @@ RUN mkdir -p $HOME/ros2_ws/src \
 
 # Replace crazyflie_server.py adapted for sitl
 RUN rm $HOME/ros2_ws/src/crazyswarm2/crazyflie/scripts/crazyflie_server.py
-COPY ../to_copy/crazyflie_server.py $HOME/ros2_ws/src/crazyswarm2/crazyflie/scripts/
+COPY docker/to_copy/crazyflie_server.py $HOME/ros2_ws/src/crazyswarm2/crazyflie/scripts/
 RUN chmod +x $HOME/ros2_ws/src/crazyswarm2/crazyflie/scripts/crazyflie_server.py
 
 # Install ROS2 dependencies
@@ -161,8 +161,9 @@ RUN pip3 install --no-cache-dir --upgrade \
     scikit-learn \
     opencv-python \
     pygame \
-    numba
-
+    numba \
+    coverage>=7.0.0
+    
 # Build crazyswarm2
 WORKDIR $HOME/ros2_ws
 RUN bash -c "source /opt/ros/${ROS2_DISTRO}/setup.bash; colcon build --symlink-install --merge-install --cmake-args=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON";
@@ -178,10 +179,10 @@ RUN echo "ros2_ws" >> $HOME/.bashrc
 RUN echo "source_ros2" >> $HOME/.bashrc
 
 WORKDIR $HOME
-COPY ../to_copy/aliases $HOME/.bash_aliases
-COPY ../to_copy/nanorc $HOME/.nanorc
-COPY ../to_copy/tmux $HOME/.tmux.conf
-COPY ../to_copy/ranger $HOME/.config/ranger/rc.conf
+COPY docker/to_copy/aliases $HOME/.bash_aliases
+COPY docker/to_copy/nanorc $HOME/.nanorc
+COPY docker/to_copy/tmux $HOME/.tmux.conf
+COPY docker/to_copy/ranger $HOME/.config/ranger/rc.conf
 
 USER root
 WORKDIR $HOME
