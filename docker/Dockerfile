@@ -16,15 +16,97 @@ USER root
 
 # Install dependencies
 RUN apt-get update \
-  && apt-get install -y \
-    python3-pip \
-    python-is-python3 \
-    curl \
-    jq \
-    git \
-    tmux \
-    tmuxinator \
-    nano
+ && apt install -y \
+        build-essential \
+        atop \
+        clang \
+        cmake \
+        cppcheck \
+        expect \
+        gdb \
+        git \
+        gnutls-bin \
+        libbluetooth-dev \
+        libccd-dev \
+        libcwiid-dev \
+        libfcl-dev \
+        libgoogle-glog-dev \
+        libspnav-dev \
+        libspdlog-dev \
+        libusb-dev \
+        libboost-thread-dev \
+        libboost-system-dev \
+        libboost-filesystem-dev \
+        libboost-regex-dev \
+        libboost-program-options-dev \
+        libconsole-bridge-dev \
+        libpoco-dev \
+        libtinyxml2-dev \
+        liblz4-dev \
+        libbz2-dev \
+        uuid-dev \
+        liblog4cxx-dev \
+        libgpgme-dev \
+        libgtest-dev \
+        python3-dbg \
+        python3-empy \
+        python3-numpy \
+        python3-setuptools \
+        python3-pip \
+        python3-venv \
+        python3-nose \
+        python3-pycryptodome \
+        python3-defusedxml \
+        python3-mock \
+        python3-netifaces \
+        python3-gnupg \
+        python3-psutil \
+        python-is-python3 \
+        vim \
+        tmux \
+        tmuxinator \
+        nano \
+        net-tools \
+        iputils-ping \
+        xvfb \
+        curl\
+        jq\
+        wget\
+        ranger \
+        htop \
+        libgl1-mesa-glx \
+        libgl1-mesa-dri \
+        rfkill \
+        sudo \
+        usbutils \
+        software-properties-common \
+ && add-apt-repository universe \
+ && apt-get clean -qq
+
+ RUN apt-get update \
+ && apt install -y \
+        python3-flake8 \
+        python3-flake8-blind-except \
+        python3-flake8-builtins \
+        python3-flake8-class-newline \
+        python3-flake8-comprehensions \
+        python3-flake8-deprecated \
+        python3-flake8-docstrings \
+        python3-flake8-import-order \
+        python3-flake8-quotes \
+        python3-pytest \
+        python3-pytest-cov \
+        python3-pytest-repeat \
+        python3-pytest-rerunfailures
+
+ENV DOCKER_BUILDKIT=1
+RUN apt-get install -y openssh-client
+ENV GIT_SSH_COMMAND="ssh -v"
+USER root
+
+RUN --mount=type=ssh id=default \
+    mkdir -p -m 0600 ~/.ssh/ && \
+    ssh-keyscan github.com >> ~/.ssh/known_hosts
 
 # Install Rviz2
 RUN apt-get install -y ros-${ROS2_DISTRO}-rviz2
@@ -63,11 +145,11 @@ RUN VERSION="releases/mcap-cli/v0.0.55" && \
     cd /bin && chmod +x mcap
 
 # Add aliases for sourcing for ros2 and ros2 workspace
-RUN echo "alias ros2_ws='source $HOME/ros2_ws/install/setup.bash'" >> $HOME/.bashrc
+RUN echo "alias ros2_ws='source $HOME/Crazyflie-RoboticsProjects/ros2_ws/install/setup.bash'" >> $HOME/.bashrc
 RUN echo "alias source_ros2='source /opt/ros/${ROS2_DISTRO}/setup.bash'" >> $HOME/.bashrc
 RUN echo "export PATH='$HOME/.local/bin:$PATH'" >> $HOME/.bashrc
 
-WORKDIR $HOME/ros2_ws
+WORKDIR $HOME
 
 RUN echo "ros2_ws" >> $HOME/.bashrc
 RUN echo "source_ros2" >> $HOME/.bashrc

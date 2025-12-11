@@ -67,11 +67,11 @@ done
 
 world=${WORLD:=crazysim_default}
 vehicle_model=${VEHICLE_MODEL:="crazyflie"}
-coordinates_file=${COORDINATES_FILE:="single_origin.txt"}
+coordinates_file=${COORDINATES_FILE:="robots.txt"}
 export CF2_SIM_MODEL=gz_${vehicle_model}
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-src_path="$SCRIPT_DIR/.."
+src_path="$SCRIPT_DIR"
 echo "$src_path"
 model_path="/root/CrazySim/crazyflie-firmware"
 
@@ -83,10 +83,10 @@ pkill -x cf2 || true
 
 sleep 1
 
-source ${src_path}/launch/setup_gz.bash ${model_path} ${build_path} ${src_path}
+source ${src_path}/setup_gz.bash ${model_path} ${build_path} ${src_path}
 
 echo "Starting gazebo"
-gz sim -s -r ${src_path}/worlds/crazysim_${world}.sdf -v 3 &
+gz sim -s -r ${src_path}/../worlds/crazysim_${world}.sdf -v 3 &
 sleep 3
 
 n=0

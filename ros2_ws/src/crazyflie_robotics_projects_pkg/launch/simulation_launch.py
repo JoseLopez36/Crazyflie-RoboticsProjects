@@ -44,7 +44,7 @@ def generate_launch_description():
     launch_description.append(
         Node(
             package='crazyflie',
-            executable='crazyflie_server.py',
+            executable='crazyflie_server',
             name='crazyflie_server',
             output='screen',
             parameters=server_params
@@ -62,7 +62,7 @@ def generate_launch_description():
     # Start vel_mux node
     vel_mux_node = Node(
         package='crazyflie',
-        executable='vel_mux.py',
+        executable='vel_mux',
         name='vel_mux',
         output='screen',
         namespace='cf',
