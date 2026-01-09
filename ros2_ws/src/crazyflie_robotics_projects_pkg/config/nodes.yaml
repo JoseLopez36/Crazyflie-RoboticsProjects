@@ -1,12 +1,12 @@
 /**/planning_node:
   ros__parameters:
-    cell_size: 0.5
+    cell_size: 0.25
     visited:
       update_period: 0.5
 
 /**/darp_node:
   ros__parameters:
-    cell_size: 0.5
+    cell_size: 0.25
 
 /**/control_node:
   ros__parameters:
@@ -17,18 +17,18 @@
   ros__parameters:
     # Parámetros de visualización de agentes
     drones:
-      position_scale: 0.35
-      setpoint_scale: 0.25
-      arrow_width: 0.08
-      label_scale: 0.4
-      z_offset: 0.05
+      position_scale: 0.1
+      setpoint_scale: 0.075
+      arrow_width: 0.04
+      label_scale: 0.2
+      z_offset: 0.0025
     # Parámetros de visualización de trayectorias
     trajectories:
-      line_width: 0.075
-      point_scale: 0.20
+      line_width: 0.025
+      point_scale: 0.05
       alpha: 0.5
     # Parámetros de visualización de zonas
     zones:
-      cell_size: 0.5
+      cell_size: 0.25
       fill_alpha: 0.05
-      outline_width: 0.025
+      outline_width: 0.010

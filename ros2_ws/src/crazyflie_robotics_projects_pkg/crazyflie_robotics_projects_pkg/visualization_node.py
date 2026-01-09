@@ -47,8 +47,8 @@ class VisualizationNode(Node):
         self.declare_parameter("zones.cell_size", 2.0)
         self.declare_parameter("zones.fill_alpha", 0.25)
         self.declare_parameter("zones.outline_width", 0.05)
-        self.declare_parameter("tasks.min_x", 0)
-        self.declare_parameter("tasks.min_y", 0)
+        self.declare_parameter("tasks.min_x", 0.0)
+        self.declare_parameter("tasks.min_y", 0.0)
         self.agent_ids = self.get_parameter("agents.ids").get_parameter_value().string_array_value
         self.position_scale = self.get_parameter("drones.position_scale").get_parameter_value().double_value
         self.setpoint_scale = self.get_parameter("drones.setpoint_scale").get_parameter_value().double_value
@@ -61,19 +61,26 @@ class VisualizationNode(Node):
         self.zones_cell_size = self.get_parameter("zones.cell_size").get_parameter_value().double_value
         self.zones_fill_alpha = self.get_parameter("zones.fill_alpha").get_parameter_value().double_value
         self.zones_outline_width = self.get_parameter("zones.outline_width").get_parameter_value().double_value
-        self.min_x = float(self.get_parameter("tasks.min_x").get_parameter_value().integer_value)
-        self.min_y = float(self.get_parameter("tasks.min_y").get_parameter_value().integer_value)
+        self.min_x = float(self.get_parameter("tasks.min_x").get_parameter_value().double_value)
+        self.min_y = float(self.get_parameter("tasks.min_y").get_parameter_value().double_value)
 
         # QoS para trayectorias
-        trajectory_qos = QoSProfile(
+        qos_profile_trajectory = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
             depth=1,
         )
 
+        # QoS para posiciones y setpoints
+        qos_profile_points = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
+        )
+
         # QoS para zonas
-        zones_qos = QoSProfile(
+        qos_profile_zones = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
@@ -81,7 +88,7 @@ class VisualizationNode(Node):
         )
 
         # QoS para marcadores
-        marker_qos = QoSProfile(
+        qos_profile_markers = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
@@ -89,9 +96,9 @@ class VisualizationNode(Node):
         )
 
         # Publicador de marcadores
-        self.drone_markers_pub = self.create_publisher(MarkerArray, "/visualization/drones", marker_qos)
-        self.trajectory_markers_pub = self.create_publisher(MarkerArray, "/visualization/trajectories", marker_qos)
-        self.zones_markers_pub = self.create_publisher(MarkerArray, "/visualization/zones", marker_qos)
+        self.drone_markers_pub = self.create_publisher(MarkerArray, "/visualization/drones", qos_profile_markers)
+        self.trajectory_markers_pub = self.create_publisher(MarkerArray, "/visualization/trajectories", qos_profile_markers)
+        self.zones_markers_pub = self.create_publisher(MarkerArray, "/visualization/zones", qos_profile_markers)
 
         # Suscriptores de posiciones y setpoints
         self.positions: Dict[str, Optional[PointStamped]] = {aid: None for aid in self.agent_ids}
@@ -110,19 +117,19 @@ class VisualizationNode(Node):
                 PointStamped,
                 f"/{agent_id}/state/position",
                 lambda msg, uid=agent_id: self.position_cb(msg, uid),
-                marker_qos,
+                qos_profile_points,
             )
             self.setpoint_subs[agent_id] = self.create_subscription(
                 PointStamped,
                 f"/{agent_id}/control/setpoint",
                 lambda msg, uid=agent_id: self.setpoint_cb(msg, uid),
-                marker_qos,
+                qos_profile_points,
             )
             self.traj_subs[agent_id] = self.create_subscription(
                 Trajectory2D,
                 f"/{agent_id}/planning/trajectory_remaining",
                 lambda msg, uid=agent_id: self.trajectory_cb(msg, uid),
-                trajectory_qos
+                qos_profile_trajectory
             )
 
         # Suscriptor de zonas
@@ -130,7 +137,7 @@ class VisualizationNode(Node):
             Int32MultiArray,
             "/planning/zones",
             self.zones_cb,
-            zones_qos
+            qos_profile_zones
         )
 
         self.get_logger().info(f"Nodo de visualizacion iniciado")

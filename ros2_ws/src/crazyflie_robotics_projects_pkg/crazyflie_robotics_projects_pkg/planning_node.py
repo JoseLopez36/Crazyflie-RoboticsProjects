@@ -20,19 +20,19 @@ class PlanningNode(Node):
         self.declare_parameter("agents.ids", [""])
         self.declare_parameter("cell_size", 2.0)
         self.declare_parameter("visited.update_period", 0.5)
-        self.declare_parameter("tasks.min_x", 0)
-        self.declare_parameter("tasks.max_x", 0)
-        self.declare_parameter("tasks.min_y", 0)
-        self.declare_parameter("tasks.max_y", 0)
+        self.declare_parameter("tasks.min_x", 0.0)
+        self.declare_parameter("tasks.max_x", 0.0)
+        self.declare_parameter("tasks.min_y", 0.0)
+        self.declare_parameter("tasks.max_y", 0.0)
         self.declare_parameter("tasks.obstacles_positions_x", [0.0])
         self.declare_parameter("tasks.obstacles_positions_y", [0.0])
         self.agent_ids = self.get_parameter("agents.ids").get_parameter_value().string_array_value
         self.cell_size = self.get_parameter("cell_size").get_parameter_value().double_value
         self.visited_update_period = self.get_parameter("visited.update_period").get_parameter_value().double_value
-        self.min_x = self.get_parameter("tasks.min_x").get_parameter_value().integer_value
-        self.max_x = self.get_parameter("tasks.max_x").get_parameter_value().integer_value
-        self.min_y = self.get_parameter("tasks.min_y").get_parameter_value().integer_value
-        self.max_y = self.get_parameter("tasks.max_y").get_parameter_value().integer_value
+        self.min_x = self.get_parameter("tasks.min_x").get_parameter_value().double_value
+        self.max_x = self.get_parameter("tasks.max_x").get_parameter_value().double_value
+        self.min_y = self.get_parameter("tasks.min_y").get_parameter_value().double_value
+        self.max_y = self.get_parameter("tasks.max_y").get_parameter_value().double_value
         self.obstacles_positions_x = self.get_parameter("tasks.obstacles_positions_x").get_parameter_value().double_array_value
         self.obstacles_positions_y = self.get_parameter("tasks.obstacles_positions_y").get_parameter_value().double_array_value
 
@@ -46,27 +46,26 @@ class PlanningNode(Node):
         self.last_published_zones = None  # list[int]
 
         # QoS para trayectorias
-        trajectory_qos = QoSProfile(
+        qos_profile_trajectory = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
             depth=1,
+        )
+
+        # QoS para posiciones y setpoints
+        qos_profile_points = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10
         )
 
         # QoS para zonas
-        zones_qos = QoSProfile(
+        qos_profile_zones = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
             depth=1,
-        )
-
-        # QoS
-        qos_profile = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1
         )
 
         # Suscripciones de posiciones por agente
@@ -81,7 +80,7 @@ class PlanningNode(Node):
                 PointStamped,
                 f"/{agent_id}/state/position",
                 lambda msg, uid=agent_id: self.position_callback(msg, uid),
-                qos_profile
+                qos_profile_points
             )
 
         # Publicadores de trayectorias por agente
@@ -90,14 +89,14 @@ class PlanningNode(Node):
             self.trajectory_publishers[agent_id] = self.create_publisher(
                 Trajectory2D, 
                 f"/{agent_id}/planning/trajectory",
-                trajectory_qos
+                qos_profile_trajectory
             )
 
         # Publicador de zonas
         self.zones_pub = self.create_publisher(
             Int32MultiArray,
             "/planning/zones",
-            zones_qos,
+            qos_profile_zones,
         )
 
         # Cliente de servicio DARP
@@ -144,10 +143,10 @@ class PlanningNode(Node):
         else:
             self.get_logger().info("Peticion de algoritmo DARP (planificacion inicial)...")
         req = DarpPetition.Request()
-        req.min_x = int(self.min_x)
-        req.max_x = int(self.max_x)
-        req.min_y = int(self.min_y)
-        req.max_y = int(self.max_y)
+        req.min_x = float(self.min_x)
+        req.max_x = float(self.max_x)
+        req.min_y = float(self.min_y)
+        req.max_y = float(self.max_y)
         req.visualization = False
 
         # Obstaculos desde parametros
@@ -253,8 +252,8 @@ class PlanningNode(Node):
         return response
 
     def compute_rows_cols(self):
-        extent_x = int(self.max_x) - int(self.min_x)
-        extent_y = int(self.max_y) - int(self.min_y)
+        extent_x = float(self.max_x) - float(self.min_x)
+        extent_y = float(self.max_y) - float(self.min_y)
         cols = int(round(float(extent_x) / float(self.cell_size))) if self.cell_size > 0.0 else 0
         rows = int(round(float(extent_y) / float(self.cell_size))) if self.cell_size > 0.0 else 0
         return max(0, rows), max(0, cols)

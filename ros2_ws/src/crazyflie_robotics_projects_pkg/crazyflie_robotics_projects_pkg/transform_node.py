@@ -65,7 +65,7 @@ class TransformNode(Node):
             # Crear publicadores para Crazyflie
             self.trajectory_setpoint_cf_publishers[agent_id] = self.create_publisher(
                 Position,
-                f"/{self.agent_id}/cmd_position",
+                f"/{agent_id}/cmd_position",
                 qos_profile_cf
             )
             # Crear suscriptores de ROS2

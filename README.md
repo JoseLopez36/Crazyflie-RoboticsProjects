@@ -63,13 +63,23 @@ Please, configure:
    - `ros2_ws/src/crazyflie_robotics_projects_pkg/config/crazyflie/custom_config.yaml`
 
 ### Run System
-On one terminal, run:
+Run Gazebo:
 ```bash
 bash /root/Crazyflie-RoboticsProjects/tools/sitl_multiagent_text.sh -m crazyflie -f robots.txt -w empty_10x10
 ```
 
-Wait until Gazebo is running and on another terminal, run:
+Run Crazyflie server:
 ```bash
-ros2_ws
-ros2 launch crazyflie_robotics_projects_pkg run.launch.py cf_config:=custom_config.yaml
+waitForCfsGazebo; sleep 2;
+ros2 launch crazyflie_robotics_projects_pkg crazyflie.launch.py cf_config:=custom_config.yaml
+```
+
+Run system:
+```bash
+ros2 launch crazyflie_robotics_projects_pkg run.launch.py
+```
+
+(optional) Run RViZ:
+```bash
+ros2 launch crazyflie_robotics_projects_pkg visualize.launch.py
 ```

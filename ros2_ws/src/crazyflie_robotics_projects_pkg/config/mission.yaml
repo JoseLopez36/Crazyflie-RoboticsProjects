@@ -7,9 +7,9 @@
     tasks:
       # Área de la tarea en metros: rectángulo [min, max)
       min_x: 0.5
-      max_x: 3
+      max_x: 3.0
       min_y: 0.5
-      max_y: 2
+      max_y: 2.0
       # Posiciones de los obstáculos en metros
       obstacles_positions_x: [2.5]
       obstacles_positions_y: [1.5]

@@ -15,10 +15,14 @@ class ControlNode(Node):
         super().__init__("control_node")
 
         # Parámetros
-        self.declare_parameter("agent_id", "")
-        self.declare_parameter("target_altitude", 5.0)
-        self.declare_parameter("acceptance_radius", 0.5)
+        default_agent_id = self.get_namespace().lstrip("/") or ""
+        self.declare_parameter("agent_id", default_agent_id)
+        self.declare_parameter("target_altitude", 2.0)
+        self.declare_parameter("acceptance_radius", 0.1)
+
         self.agent_id = self.get_parameter("agent_id").get_parameter_value().string_value
+        if not self.agent_id:
+            self.agent_id = default_agent_id
         self.target_altitude = self.get_parameter("target_altitude").get_parameter_value().double_value
         self.acceptance_radius = self.get_parameter("acceptance_radius").get_parameter_value().double_value
 
