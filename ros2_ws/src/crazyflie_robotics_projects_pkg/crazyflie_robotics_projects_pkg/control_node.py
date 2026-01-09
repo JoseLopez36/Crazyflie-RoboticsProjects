@@ -4,10 +4,9 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
-from geometry_msgs.msg import PointStamped, PoseStamped
+from geometry_msgs.msg import PointStamped
 from vision_msgs.msg import Point2D
 from crazyflie_robotics_projects_msgs.msg import Trajectory2D
-from crazyflie_interfaces.msg import Position
 from crazyflie_interfaces.srv import Takeoff, Arm, Land
 from builtin_interfaces.msg import Duration
 
@@ -17,37 +16,29 @@ class ControlNode(Node):
 
         # Parámetros
         self.declare_parameter("agent_id", "")
-        self.declare_parameter("target_altitude", 0.5)
-        self.declare_parameter("acceptance_radius", 0.1)
+        self.declare_parameter("target_altitude", 5.0)
+        self.declare_parameter("acceptance_radius", 0.5)
         self.agent_id = self.get_parameter("agent_id").get_parameter_value().string_value
         self.target_altitude = self.get_parameter("target_altitude").get_parameter_value().double_value
         self.acceptance_radius = self.get_parameter("acceptance_radius").get_parameter_value().double_value
 
         # QoS para trayectorias
-        trajectory_qos = QoSProfile(
+        qos_profile_trajectory = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             history=HistoryPolicy.KEEP_LAST,
             depth=1,
         )
 
-        # QoS
-        qos_profile = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1
-        )
-
-        # QoS profile
-        qos_profile_crazyflie = QoSProfile(
+        # QoS para posiciones y setpoints
+        qos_profile_points = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
             depth=10
         )
 
         # Estado del agente
-        self.position = PointStamped()  # PointStamped
+        self.position = None  # PointStamped
         self.trajectory_points = []  # list[vision_msgs/Point2D]
         self.current_index = 0
         self.setpoint_count = 0
@@ -55,33 +46,33 @@ class ControlNode(Node):
 
         # Suscripciones
         self.position_sub = self.create_subscription(
-            PoseStamped,
-            f"/{self.agent_id}/pose",
+            PointStamped,
+            f"/{self.agent_id}/state/position",
             self.position_callback,
-            qos_profile_crazyflie
+            qos_profile_points
         )
         self.traj_sub = self.create_subscription(
             Trajectory2D,
             f"/{self.agent_id}/planning/trajectory",
             self.trajectory_callback,
-            trajectory_qos
+            qos_profile_trajectory
         )
 
         # Publishers
         self.setpoint_pub = self.create_publisher(
-            Position,
-            f"/{self.agent_id}/cmd_position",
-            qos_profile_crazyflie
+            PointStamped,
+            f"/{self.agent_id}/control/setpoint",
+            qos_profile_points
         )
 
         # Publicador: resto de trayectoria (solo visualización)
         self.remaining_traj_pub = self.create_publisher(
             Trajectory2D,
             f"/{self.agent_id}/planning/trajectory_remaining",
-            trajectory_qos,
+            qos_profile_trajectory,
         )
 
-        # Service clients for takeoff, land, and arm
+        # Service clients para takeoff, land y arm
         self.takeoff_client = self.create_client(Takeoff, f'/{self.agent_id}/takeoff')
         self.land_client = self.create_client(Land, f'/{self.agent_id}/land')
         self.arm_client = self.create_client(Arm, f'/{self.agent_id}/arm')
@@ -93,8 +84,8 @@ class ControlNode(Node):
             f"Nodo de control iniciado para {self.agent_id}"
         )
 
-    def position_callback(self, msg: PoseStamped):
-        self.position.point = msg.pose.position
+    def position_callback(self, msg: PointStamped):
+        self.position = msg
 
     def trajectory_callback(self, msg: Trajectory2D):
         self.trajectory_points = list(msg.points)
@@ -117,39 +108,34 @@ class ControlNode(Node):
         ]
         self.remaining_traj_pub.publish(out)
 
-    def publish_trajectory_setpoint(self, x, y, z, yaw=0.0):
-        # Publish position command using crazyswarm2 Position message
-        msg = Position()
-        msg.x = float(x)
-        msg.y = float(y)
-        msg.z = float(z)
-        msg.yaw = float(yaw)
+    def publish_trajectory_setpoint(self, x, y, z):
+        msg = PointStamped()
+        msg.point.x = float(x)
+        msg.point.y = float(y)
+        msg.point.z = float(z)
         self.setpoint_pub.publish(msg)
 
     def arm(self):
-        """Arm the Crazyflie using crazyswarm2 service"""
         if not self.arm_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().warn(f'{self.agent_id}: Arm service not available')
             return
         
         req = Arm.Request()
         req.arm = True
-        future = self.arm_client.call_async(req)
+        self.arm_client.call_async(req)
         self.get_logger().info(f'{self.agent_id}: Sending ARM command')
 
     def disarm(self):
-        """Disarm the Crazyflie using crazyswarm2 service"""
         if not self.arm_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().warn(f'{self.agent_id}: Arm service not available')
             return
         
         req = Arm.Request()
         req.arm = False
-        future = self.arm_client.call_async(req)
+        self.arm_client.call_async(req)
         self.get_logger().info(f'{self.agent_id}: Sending DISARM command')
 
     def takeoff(self, height, duration_sec=2.0):
-        """Takeoff the Crazyflie using crazyswarm2 service"""
         if not self.takeoff_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().warn(f'{self.agent_id}: Takeoff service not available')
             return
@@ -160,7 +146,7 @@ class ControlNode(Node):
         req.duration.sec = int(duration_sec)
         req.duration.nanosec = int((duration_sec - int(duration_sec)) * 1e9)
         req.group_mask = 0
-        future = self.takeoff_client.call_async(req)
+        self.takeoff_client.call_async(req)
         self.get_logger().info(f'{self.agent_id}: Sending TAKEOFF command to height {height}m')
 
     def control_loop(self):
@@ -171,13 +157,20 @@ class ControlNode(Node):
 
         # --- INIT ---
         if self.agent_state == "INIT":
-            # Arm the drone
-            self.arm()
-            
-            # After arming, request takeoff
-            self.takeoff(self.target_altitude, duration_sec=2.0)
-            self.agent_state = 'TAKEOFF'
-            self.get_logger().info(f"{self.agent_id}: Starting TAKEOFF")
+            # Enviar setpoints iniciales en XY y altitud objetivo
+            self.publish_trajectory_setpoint(
+                current_pos.point.x, current_pos.point.y, self.target_altitude
+            )
+            self.setpoint_count += 1
+
+            # Cuando se haya enviado 10 setpoints, armar el Crazyflie y pasar al estado TAKEOFF
+            if self.setpoint_count > 10:
+                # Enviar armar y takeoff
+                self.arm()
+                self.takeoff(self.target_altitude, duration_sec=2.0)
+
+                self.agent_state = "TAKEOFF"
+                self.get_logger().info(f"{self.agent_id}: Iniciando TAKEOFF")
 
         # --- TAKEOFF ---
         elif self.agent_state == "TAKEOFF":
@@ -234,5 +227,3 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
-
-

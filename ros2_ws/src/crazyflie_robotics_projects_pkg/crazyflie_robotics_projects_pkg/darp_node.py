@@ -19,7 +19,7 @@ class DarpNode(Node):
         super().__init__("darp_node")
 
         # Parámetros
-        self.declare_parameter("cell_size", 0.5)
+        self.declare_parameter("cell_size", 2.0)
         self.cell_size = self.get_parameter("cell_size").get_parameter_value().double_value
 
         # Servicio para procesar peticiones DARP

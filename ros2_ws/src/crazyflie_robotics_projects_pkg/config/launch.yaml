@@ -1,0 +1,10 @@
+# Node launch configuration
+# Set to [enable, log_level]
+# Enable: true launches the node, false does not
+# Log levels: debug, info, warn, error, fatal
+
+planning: [true, 'info']
+darp: [true, 'info']
+control: [true, 'info']
+transform: [true, 'info']
+visualization: [true, 'info']

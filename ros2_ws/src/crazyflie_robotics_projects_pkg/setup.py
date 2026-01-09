@@ -17,7 +17,7 @@ setup(
     ],
     install_requires=['setuptools', 'pynput'],
     zip_safe=True,
-    maintainer='José Francisco López Ruiz',
+    maintainer='Jorge Prieto Álvarez, Víctor Javier Granero Gil, José Francisco López Ruiz',
     maintainer_email='josloprui6@alum.us.es',
     description='Main package for the Crazyflie Robotics Projects',
     license='TODO: License declaration',

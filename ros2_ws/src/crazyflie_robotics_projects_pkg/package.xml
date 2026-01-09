@@ -6,7 +6,7 @@
   <description>
     Main package for the Crazyflie Robotics Projects
   </description>
-  <maintainer email="josloprui6@alum.us.es">José Francisco López Ruiz</maintainer>
+  <maintainer email="josloprui6@alum.us.es">Jorge Prieto Álvarez, Víctor Javier Granero Gil, José Francisco López Ruiz</maintainer>
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>

@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
-from geometry_msgs.msg import PointStamped, PoseStamped
+from geometry_msgs.msg import PointStamped
 from vision_msgs.msg import Point2D
 
 from std_msgs.msg import Int32MultiArray, MultiArrayDimension
@@ -18,12 +18,12 @@ class PlanningNode(Node):
 
         # Parámetros
         self.declare_parameter("agents.ids", [""])
-        self.declare_parameter("cell_size", 0.5)
+        self.declare_parameter("cell_size", 2.0)
         self.declare_parameter("visited.update_period", 0.5)
-        self.declare_parameter("tasks.min_x", 0.0)
-        self.declare_parameter("tasks.max_x", 0.0)
-        self.declare_parameter("tasks.min_y", 0.0)
-        self.declare_parameter("tasks.max_y", 0.0)
+        self.declare_parameter("tasks.min_x", 0)
+        self.declare_parameter("tasks.max_x", 0)
+        self.declare_parameter("tasks.min_y", 0)
+        self.declare_parameter("tasks.max_y", 0)
         self.declare_parameter("tasks.obstacles_positions_x", [0.0])
         self.declare_parameter("tasks.obstacles_positions_y", [0.0])
         self.agent_ids = self.get_parameter("agents.ids").get_parameter_value().string_array_value
@@ -69,26 +69,19 @@ class PlanningNode(Node):
             depth=1
         )
 
-        # QoS profile
-        qos_profile_crazyflie = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=10
-        )
-
         # Suscripciones de posiciones por agente
         self.position_subscribers = {}
         self.positions = {}  # agent_id -> PointStamped
         self.position_received = {}  # agent_id -> bool
 
         for agent_id in self.agent_ids:
-            self.positions[agent_id] = PointStamped()
+            self.positions[agent_id] = None
             self.position_received[agent_id] = False
             self.position_subscribers[agent_id] = self.create_subscription(
-                PoseStamped,
-                f"/{agent_id}/pose",
+                PointStamped,
+                f"/{agent_id}/state/position",
                 lambda msg, uid=agent_id: self.position_callback(msg, uid),
-                qos_profile_crazyflie
+                qos_profile
             )
 
         # Publicadores de trayectorias por agente
@@ -129,8 +122,8 @@ class PlanningNode(Node):
 
         self.get_logger().info("Nodo de planificacion iniciado. Esperando posiciones iniciales...")
 
-    def position_callback(self, msg: PoseStamped, agent_id: str):
-        self.positions[agent_id].point = msg.pose.position
+    def position_callback(self, msg: PointStamped, agent_id: str):
+        self.positions[agent_id] = msg
         self.position_received[agent_id] = True
 
     def all_positions_received(self) -> bool:

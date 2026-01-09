@@ -6,8 +6,6 @@ from geometry_msgs.msg import Point, PointStamped
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA, Int32MultiArray
 
-from geometry_msgs.msg import PoseStamped
-
 from crazyflie_robotics_projects_msgs.msg import Trajectory2D
 
 from dataclasses import dataclass
@@ -46,7 +44,7 @@ class VisualizationNode(Node):
         self.declare_parameter("trajectories.line_width", 0.10)
         self.declare_parameter("trajectories.point_scale", 0.25)
         self.declare_parameter("trajectories.alpha", 0.9)
-        self.declare_parameter("zones.cell_size", 0.1)
+        self.declare_parameter("zones.cell_size", 2.0)
         self.declare_parameter("zones.fill_alpha", 0.25)
         self.declare_parameter("zones.outline_width", 0.05)
         self.declare_parameter("tasks.min_x", 0)
@@ -96,8 +94,8 @@ class VisualizationNode(Node):
         self.zones_markers_pub = self.create_publisher(MarkerArray, "/visualization/zones", marker_qos)
 
         # Suscriptores de posiciones y setpoints
-        self.positions: Dict[str, Optional[PointStamped]] = {aid: PointStamped() for aid in self.agent_ids}
-        self.setpoints: Dict[str, Optional[PointStamped]] = {aid: PointStamped() for aid in self.agent_ids}
+        self.positions: Dict[str, Optional[PointStamped]] = {aid: None for aid in self.agent_ids}
+        self.setpoints: Dict[str, Optional[PointStamped]] = {aid: None for aid in self.agent_ids}
         self.pos_subs = {}
         self.setpoint_subs = {}
 
@@ -109,14 +107,14 @@ class VisualizationNode(Node):
 
         for agent_id in self.agent_ids:
             self.pos_subs[agent_id] = self.create_subscription(
-                PoseStamped,
-                f"/{agent_id}/pose",
+                PointStamped,
+                f"/{agent_id}/state/position",
                 lambda msg, uid=agent_id: self.position_cb(msg, uid),
                 marker_qos,
             )
             self.setpoint_subs[agent_id] = self.create_subscription(
-                PoseStamped,
-                f"/{agent_id}/cmd_position",
+                PointStamped,
+                f"/{agent_id}/control/setpoint",
                 lambda msg, uid=agent_id: self.setpoint_cb(msg, uid),
                 marker_qos,
             )
@@ -137,13 +135,13 @@ class VisualizationNode(Node):
 
         self.get_logger().info(f"Nodo de visualizacion iniciado")
 
-    def position_cb(self, msg: PoseStamped, agent_id: str) -> None:
-        self.positions[agent_id].point = msg.pose.position
+    def position_cb(self, msg: PointStamped, agent_id: str) -> None:
+        self.positions[agent_id] = msg
         markers = self.make_drone_markers()
         self.drone_markers_pub.publish(markers)
 
-    def setpoint_cb(self, msg: PoseStamped, agent_id: str) -> None:
-        self.setpoints[agent_id].point = msg.pose.position
+    def setpoint_cb(self, msg: PointStamped, agent_id: str) -> None:
+        self.setpoints[agent_id] = msg
 
     def trajectory_cb(self, msg: Trajectory2D, agent_id: str) -> None:
         pts = [(float(p.x), float(p.y)) for p in msg.points]
