@@ -62,22 +62,14 @@ Please, configure:
    - `ros2_ws/src/crazyflie_robotics_projects_pkg/config/mission.yaml`
    - `ros2_ws/src/crazyflie_robotics_projects_pkg/config/crazyflie/custom_config.yaml`
 
-### Run Simulation
-
-**Start Simulation:**:
+### Run System
 On one terminal, run:
 ```bash
-/root/Crazyflie-RoboticsProjects/ros2_ws/src/crazyflie_robotics_projects_pkg/launch/sitl_multiagent_text.sh -m crazyflie -f robots.txt -w empty_10x10
+bash /root/Crazyflie-RoboticsProjects/tools/sitl_multiagent_text.sh -m crazyflie -f robots.txt -w empty_10x10
 ```
 
 Wait until Gazebo is running and on another terminal, run:
 ```bash
-ros2 launch crazyflie_robotics_projects_pkg run.launch.py cf_config:=simulation_config.yaml
-```
-
-### Run Hardware
-
-**Start Hardware:**:
-```bash
-ros2 launch crazyflie_robotics_projects_pkg run.launch.py cf_config:=hardware_config.yaml
+ros2_ws
+ros2 launch crazyflie_robotics_projects_pkg run.launch.py cf_config:=custom_config.yaml
 ```

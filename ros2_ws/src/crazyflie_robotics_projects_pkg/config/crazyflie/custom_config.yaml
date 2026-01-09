@@ -12,12 +12,43 @@ robots:
     initial_position: [1.0, 1.0, 0.0]
     type: cf_sim  # see robot_types
 
+  # cf_0:
+  #   enabled: true
+  #   uri: radio://0/80/2M/E7E7E7E7E7
+  #   initial_position: [0.0, 0.0, 0.0]
+  #   type: cf  # see robot_types
+
+  # cf_1:
+  #   enabled: true
+  #   uri: radio://0/80/2M/E7E7E7E7E8
+  #   initial_position: [1.0, 1.0, 0.0]
+  #   type: cf  # see robot_types
+
 # Definition of the various robot types
 robot_types:
   cf_sim:
     motion_capture:
       enabled: false
     big_quad: false
+    firmware_logging:
+      enabled: true
+      default_topics:
+        pose:
+          frequency: 10
+      custom_topics:
+        velocity:
+          frequency: 10
+          vars: ["kalman.statePX", "kalman.statePY", "kalman.statePZ"]
+
+  cf:
+    motion_capture:
+      enabled: false
+      marker: cf_mpc
+      dynamics: default
+    big_quad: false
+    battery:
+      voltage_warning: 3.8  # V
+      voltage_critical: 3.7 # V
     firmware_logging:
       enabled: true
       default_topics:
