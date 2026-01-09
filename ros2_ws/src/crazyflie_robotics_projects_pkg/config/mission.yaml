@@ -1,16 +1,15 @@
-coordinator_node:
+/**:
   ros__parameters:
     agents:
-      ids: ["cf_0", "cf_1", "cf_2"]
-
+      ids: ["cf_0", "cf_1"]
+      initial_positions_x: [0.0, 1.0]
+      initial_positions_y: [0.0, 1.0]
     tasks:
-      min_x: -5
-      max_x: 5
-      min_y: -5
-      max_y: 5
-      obstacles_positions_x: [1.0, 2.0, -1.0]
-      obstacles_positions_y: [1.0, 2.0, -1.0]
-
-    target_altitude: 1.5
-    acceptance_radius: 0.5
-
+      # Área de la tarea en metros: rectángulo [min, max)
+      min_x: 0.5
+      max_x: 3
+      min_y: 0.5
+      max_y: 2
+      # Posiciones de los obstáculos en metros
+      obstacles_positions_x: [2.5]
+      obstacles_positions_y: [1.5]

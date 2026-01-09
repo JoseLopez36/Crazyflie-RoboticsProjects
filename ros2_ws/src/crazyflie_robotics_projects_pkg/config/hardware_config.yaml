@@ -9,13 +9,7 @@ robots:
   cf_1:
     enabled: true
     uri: radio://0/80/2M/E7E7E7E7E8
-    initial_position: [0.0, 0.0, 0.0]
-    type: cf  # see robot_types
-
-  cf_2:
-    enabled: true
-    uri: radio://0/80/2M/E7E7E7E7E9
-    initial_position: [0.0, 0.0, 0.0]
+    initial_position: [1.0, 1.0, 0.0]
     type: cf  # see robot_types
 
 # Definition of the various robot types

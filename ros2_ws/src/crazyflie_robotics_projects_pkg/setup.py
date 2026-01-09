@@ -15,7 +15,7 @@ setup(
         (os.path.join('share', package_name), glob('launch/*launch.[pxy][yma]*')),
         (os.path.join('share', package_name, 'config'), glob('config/*yaml'))
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'pynput'],
     zip_safe=True,
     maintainer='José Francisco López Ruiz',
     maintainer_email='josloprui6@alum.us.es',
@@ -24,7 +24,11 @@ setup(
     entry_points={
         'console_scripts': [
             'coordinator_node = crazyflie_robotics_projects_pkg.coordinator_node:main',
-            'darp_node = crazyflie_robotics_projects_pkg.darp_node:main'
+            'darp_node = crazyflie_robotics_projects_pkg.darp_node:main',
+            'planning_node = crazyflie_robotics_projects_pkg.planning_node:main',
+            'control_node = crazyflie_robotics_projects_pkg.control_node:main',
+            'visualization_node = crazyflie_robotics_projects_pkg.visualization_node:main',
+            'test_node = crazyflie_robotics_projects_pkg.test_node:main'
         ],
     },
 )

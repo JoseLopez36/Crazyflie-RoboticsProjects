@@ -14,8 +14,24 @@ def generate_launch_description():
         'config',
         'hardware_config.yaml')
 
+    mission_yaml = os.path.join(
+        get_package_share_directory('crazyflie_robotics_projects_pkg'),
+        'config',
+        'mission.yaml')
+
     with open(crazyflies_yaml, 'r') as ymlfile:
         crazyflies = yaml.safe_load(ymlfile)
+
+    # Cargar configuración de misión (para obtener agents.ids)
+    with open(mission_yaml, 'r') as f:
+        mission = yaml.safe_load(f)
+
+    # Obtener IDs de agentes desde mission.yaml
+    agents_ids = []
+    try:
+        agents_ids = mission.get('/**', {}).get('ros__parameters', {}).get('agents', {}).get('ids', [])
+    except Exception:
+        agents_ids = []
 
     # Server parameters
     server_yaml = os.path.join(
@@ -49,30 +65,55 @@ def generate_launch_description():
             output='screen',
             parameters=server_params
         ))
-    
-    # Start TransformWorld2Odom node
-    launch_description.append(
-        Node(
-            package='crazyflie_robotics_projects_pkg',
-            executable='transform_world_2_odom',
-            name='transform_world_2_odom',
-            output='screen'
-        ))
 
-    # Start VelMux node
-    vel_mux_node = Node(
-        package='crazyflie',
-        executable='vel_mux.py',
-        name='vel_mux',
-        namespace='cf',
+    # Start test node
+    test_node = Node(
+        package='crazyflie_robotics_projects_pkg',
+        executable='test_node',
+        name='test_node',
         output='screen',
         parameters=[
-            {"hover_height": 1.0},
-            {"incoming_twist_topic": "cmd_vel"},
-            {"robot_prefix": "/cf"}
+            mission_yaml
         ]
     )
-    launch_description.append(vel_mux_node)
+    launch_description.append(test_node)
+
+    # # Start planning node
+    # planning_node = Node(
+    #     package='crazyflie_robotics_projects_pkg',
+    #     executable='planning_node',
+    #     name='planning_node',
+    #     output='screen',
+    #     parameters=[
+    #         mission_yaml
+    #     ]
+    # )
+    # launch_description.append(planning_node)
+
+    # # Start control node
+    # for agent_id in agents_ids:
+    #     launch_description.append(
+    #         Node(
+    #             package='crazyflie_robotics_projects_pkg',
+    #             executable='control_node',
+    #             namespace=agent_id,
+    #             name='control_node',
+    #             output='screen',
+    #             parameters=[mission_yaml, {'agent_id': agent_id}]
+    #         )
+    #     )
+
+    # # Start visualization node
+    # visualization_node = Node(
+    #     package='crazyflie_robotics_projects_pkg',
+    #     executable='visualization_node',
+    #     name='visualization_node',
+    #     output='screen',
+    #     parameters=[
+    #         mission_yaml
+    #     ]
+    # )
+    # launch_description.append(visualization_node)
     
     # Start Rviz2 node
     launch_description.append(       

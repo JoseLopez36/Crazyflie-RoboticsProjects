@@ -162,7 +162,8 @@ RUN pip3 install --no-cache-dir --upgrade \
     opencv-python \
     pygame \
     numba \
-    coverage>=7.0.0
+    coverage>=7.0.0 \
+    pynput
     
 # Build crazyswarm2
 WORKDIR $HOME/ros2_ws

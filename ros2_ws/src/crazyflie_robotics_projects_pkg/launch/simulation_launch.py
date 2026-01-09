@@ -22,6 +22,17 @@ def generate_launch_description():
     with open(crazyflies_yaml, 'r') as ymlfile:
         crazyflies = yaml.safe_load(ymlfile)
 
+    # Cargar configuración de misión (para obtener agents.ids)
+    with open(mission_yaml, 'r') as f:
+        mission = yaml.safe_load(f)
+
+    # Obtener IDs de agentes desde mission.yaml
+    agents_ids = []
+    try:
+        agents_ids = mission.get('/**', {}).get('ros__parameters', {}).get('agents', {}).get('ids', [])
+    except Exception:
+        agents_ids = []
+
     # Server parameters
     server_yaml = os.path.join(
         get_package_share_directory('crazyflie'),
@@ -64,17 +75,42 @@ def generate_launch_description():
     )
     launch_description.append(darp_node)
 
-    # Start coordinator node
-    coordinator_node = Node(
+    # Start test node
+    test_node = Node(
         package='crazyflie_robotics_projects_pkg',
-        executable='coordinator_node',
-        name='coordinator_node',
+        executable='test_node',
+        name='test_node',
         output='screen',
         parameters=[
             mission_yaml
         ]
     )
-    launch_description.append(coordinator_node)
+    launch_description.append(test_node)
+
+    # # Start control node
+    # for agent_id in agents_ids:
+    #     launch_description.append(
+    #         Node(
+    #             package='crazyflie_robotics_projects_pkg',
+    #             executable='control_node',
+    #             namespace=agent_id,
+    #             name='control_node',
+    #             output='screen',
+    #             parameters=[mission_yaml, {'agent_id': agent_id}]
+    #         )
+    #     )
+
+    # # Start visualization node
+    # visualization_node = Node(
+    #     package='crazyflie_robotics_projects_pkg',
+    #     executable='visualization_node',
+    #     name='visualization_node',
+    #     output='screen',
+    #     parameters=[
+    #         mission_yaml
+    #     ]
+    # )
+    # launch_description.append(visualization_node)
     
     # Start Rviz2 node
     launch_description.append(       
