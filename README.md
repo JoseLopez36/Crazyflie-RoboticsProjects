@@ -56,16 +56,28 @@ Once inside the container:
    $HOME/Crazyflie-RoboticsProjects/tools/source_workspace.sh
    ```
 
+### Configuration
+Please, configure: 
+   - `tools/robots.txt`
+   - `ros2_ws/src/crazyflie_robotics_projects_pkg/config/mission.yaml`
+   - `ros2_ws/src/crazyflie_robotics_projects_pkg/config/crazyflie/custom_config.yaml`
+
 ### Run Simulation
 
-**Start Gazebo simulation:**:
+**Start Simulation:**:
+On one terminal, run:
 ```bash
-$HOME/Crazyflie-RoboticsProjects/tools/run_simulation.sh
+/root/Crazyflie-RoboticsProjects/ros2_ws/src/crazyflie_robotics_projects_pkg/launch/sitl_multiagent_text.sh -m crazyflie -f robots.txt -w empty_10x10
+```
+
+Wait until Gazebo is running and on another terminal, run:
+```bash
+ros2 launch crazyflie_robotics_projects_pkg run.launch.py cf_config:=simulation_config.yaml
 ```
 
 ### Run Hardware
 
 **Start Hardware:**:
 ```bash
-$HOME/Crazyflie-RoboticsProjects/tools/run_hardware.sh
+ros2 launch crazyflie_robotics_projects_pkg run.launch.py cf_config:=hardware_config.yaml
 ```
