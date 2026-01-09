@@ -12,6 +12,8 @@
   ros__parameters:
     target_altitude: 2.0
     acceptance_radius: 0.1
+    auto_land_on_finish: true
+    land_height: 0.03
 
 /**/visualization_node:
   ros__parameters:
