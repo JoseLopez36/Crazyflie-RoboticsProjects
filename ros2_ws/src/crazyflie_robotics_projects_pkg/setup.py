@@ -28,7 +28,8 @@ setup(
             'darp_node = crazyflie_robotics_projects_pkg.darp_node:main',
             'control_node = crazyflie_robotics_projects_pkg.control_node:main',
             'transform_node = crazyflie_robotics_projects_pkg.transform_node:main',
-            'visualization_node = crazyflie_robotics_projects_pkg.visualization_node:main'
+            'visualization_node = crazyflie_robotics_projects_pkg.visualization_node:main',
+            'test_node = crazyflie_robotics_projects_pkg.test_node:main'
         ],
     },
 )

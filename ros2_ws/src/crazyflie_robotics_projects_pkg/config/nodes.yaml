@@ -34,3 +34,21 @@
       cell_size: 0.25
       fill_alpha: 0.05
       outline_width: 0.010
+
+/**/test_node:
+  ros__parameters:
+    # Simple hardware test: takeoff -> go to (x[i], y[i]) -> land
+    target_altitude: 1.0
+    acceptance_radius: 0.15
+    land_height: 0.03
+    takeoff_duration: 2.0
+    preflight_setpoints: 15
+    rate_hz: 10.0
+    takeoff_tolerance: 0.25
+    landing_tolerance: 0.05
+    takeoff_timeout_sec: 10.0
+    goto_timeout_sec: 30.0
+    landing_timeout_sec: 15.0
+    targets:
+      x: [0.0, 3.0]
+      y: [3.0, 0.0]
