@@ -1,16 +1,16 @@
 /**/planning_node:
   ros__parameters:
-    cell_size: 0.25
+    cell_size: 0.5
     visited:
       update_period: 0.5
 
 /**/darp_node:
   ros__parameters:
-    cell_size: 0.25
+    cell_size: 0.5
 
 /**/control_node:
   ros__parameters:
-    target_altitude: 2.0
+    target_altitude: 1.0
     acceptance_radius: 0.1
     auto_land_on_finish: true
     land_height: 0.03
@@ -31,7 +31,7 @@
       alpha: 0.5
     # Zone visualization parameters
     zones:
-      cell_size: 0.25
+      cell_size: 0.5
       fill_alpha: 0.05
       outline_width: 0.010
 
