@@ -1,9 +1,9 @@
 /**:
   ros__parameters:
     agents:
-      ids: ["cf_0"]
-      initial_positions_x: [0.0]
-      initial_positions_y: [0.0]
+      ids: ["cf_0", "cf_1"]
+      initial_positions_x: [0.0, 1.0]
+      initial_positions_y: [0.0, 1.0]
     tasks:
       # Task area in meters: rectangle [min, max)
       min_x: 0.5
