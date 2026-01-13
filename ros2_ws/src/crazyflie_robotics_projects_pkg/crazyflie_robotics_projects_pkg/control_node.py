@@ -17,7 +17,7 @@ class ControlNode(Node):
         # Parameters
         default_agent_id = self.get_namespace().lstrip("/") or ""
         self.declare_parameter("agent_id", default_agent_id)
-        self.declare_parameter("target_altitude", 2.0)
+        self.declare_parameter("target_altitude", 1.0)
         self.declare_parameter("acceptance_radius", 0.1)
         self.declare_parameter("auto_land_on_finish", True)
         self.declare_parameter("land_height", 0.03)
