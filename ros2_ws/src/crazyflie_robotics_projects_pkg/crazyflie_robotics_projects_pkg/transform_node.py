@@ -14,9 +14,9 @@ class TransformNode(Node):
         super().__init__('transform_node')
 
         # Log
-        self.get_logger().info("Iniciando nodo de gestion de transformaciones...")
+        self.get_logger().info("Starting transform management node...")
 
-        # Obtener parámetros
+        # Get parameters
         self.declare_parameter('agents.ids', [''])
         self.declare_parameter('agents.initial_positions_x', [0.0])
         self.declare_parameter('agents.initial_positions_y', [0.0])
@@ -24,141 +24,141 @@ class TransformNode(Node):
         self.initial_positions_x = self.get_parameter('agents.initial_positions_x').get_parameter_value().double_array_value
         self.initial_positions_y = self.get_parameter('agents.initial_positions_y').get_parameter_value().double_array_value
 
-        # Crear diccionario de orígenes de marcos locales
+        # Create dictionary of local frame origins
         self.local_frame_origins = {}
         for i in range(len(self.agents_ids)):
             self.local_frame_origins[self.agents_ids[i]] = (self.initial_positions_x[i], self.initial_positions_y[i], 0.0)
 
-        # Inicializar diccionarios
+        # Initialize dictionaries
         self.position_cf_subscribers = {}
         self.position_ros2_publishers = {}
         self.trajectory_setpoint_cf_publishers = {}
         self.trajectory_setpoint_ros2_subscribers = {}
 
-        # Crear broadcast de transformaciones
+        # Create transform broadcasters
         self.static_broadcaster = StaticTransformBroadcaster(self)
         self.tf_broadcaster = TransformBroadcaster(self)
 
-        # QoS para Crazyflie
+        # QoS for Crazyflie
         qos_profile_cf = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
             depth=10
         )
 
-        # QoS para posiciones y setpoints
+        # QoS for positions and setpoints
         qos_profile_points = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
             depth=10
         )
 
-        # Iterar sobre los UAVs para crear suscriptores y publicadores
+        # Iterate over the UAVs to create subscribers and publishers
         for agent_id in self.agents_ids:
-            # Crear suscriptores de Crazyflie
+            # Create Crazyflie subscribers
             self.position_cf_subscribers[agent_id] = self.create_subscription(
                 PoseStamped,
                 f"/{agent_id}/pose",
                 lambda msg, uid=agent_id: self.position_cf_callback(msg, uid),
                 qos_profile_cf
             )
-            # Crear publicadores para Crazyflie
+            # Create Crazyflie publishers
             self.trajectory_setpoint_cf_publishers[agent_id] = self.create_publisher(
                 Position,
                 f"/{agent_id}/cmd_position",
                 qos_profile_cf
             )
-            # Crear suscriptores de ROS2
+            # Create ROS 2 subscribers
             self.trajectory_setpoint_ros2_subscribers[agent_id] = self.create_subscription(
                 PointStamped,
                 f'/{agent_id}/control/setpoint',
                 lambda msg, uid=agent_id: self.trajectory_setpoint_ros2_callback(msg, uid),
                 qos_profile_points
             )
-            # Crear publicadores para ROS2
+            # Create ROS 2 publishers
             self.position_ros2_publishers[agent_id] = self.create_publisher(
                 PointStamped,
                 f'/{agent_id}/state/position',
                 qos_profile_points
             )
         
-        # Publicar marco global
+        # Publish global frame
         self.publish_global_frame()
     
         # Log
-        self.get_logger().info("Nodo de gestion de transformaciones iniciado")
+        self.get_logger().info("Transform management node started")
 
     def position_cf_callback(self, msg, agent_id):
-        # Callback para recibir posición de Crazyflie y publicarla en ROS2
-        # Crear mensaje de posición para ROS2
+        # Callback to receive Crazyflie position and publish it in ROS 2
+        # Create position message for ROS 2
         position_msg = PointStamped()
         position_msg.header.stamp = self.get_clock().now().to_msg()
         position_msg.header.frame_id = 'global'
         position_msg.point = msg.pose.position
 
-        # Publicar posición en ROS2
+        # Publish position in ROS 2
         self.position_ros2_publishers[agent_id].publish(position_msg)
 
-        # Publicar marco del cuerpo del UAV
+        # Publish the UAV body frame
         self.publish_body_frame(agent_id, position_msg.point.x, position_msg.point.y, position_msg.point.z)
 
     def trajectory_setpoint_ros2_callback(self, msg, agent_id):
-        # Callback para recibir setpoints de ROS2 y publicarlos en Crazyflie
-        # Crear mensaje Position para Crazyflie
+        # Callback to receive ROS 2 setpoints and publish them to Crazyflie
+        # Create Position message for Crazyflie
         setpoint_msg = Position()
         setpoint_msg.x = float(msg.point.x)
         setpoint_msg.y = float(msg.point.y)
         setpoint_msg.z = float(msg.point.z)
         setpoint_msg.yaw = 0.0
         
-        # Publicar setpoint a Crazyflie
+        # Publish setpoint to Crazyflie
         self.trajectory_setpoint_cf_publishers[agent_id].publish(setpoint_msg)
 
     def publish_global_frame(self):
-        # Publicar transformación del frame 'global' (origen)
-        # Crear mensaje de transformación
+        # Publish transform for the 'global' frame (origin)
+        # Create transform message
         t = TransformStamped()
         
-        # Establecer headers
+        # Set headers
         t.header.stamp = self.get_clock().now().to_msg()
         t.header.frame_id = 'map'
         t.child_frame_id = 'global'
         
-        # Establecer posición relativa al origen
+        # Set translation relative to origin
         t.transform.translation.x = 0.0
         t.transform.translation.y = 0.0
         t.transform.translation.z = 0.0
         
-        # Establecer orientación (identidad)
+        # Set orientation (identity)
         t.transform.rotation.w = 1.0
         t.transform.rotation.x = 0.0
         t.transform.rotation.y = 0.0
         t.transform.rotation.z = 0.0
         
-        # Publicar transformación
+        # Publish transform
         self.static_broadcaster.sendTransform(t)
 
     def publish_body_frame(self, agent_id, x, y, z):
-        # Publicar transformación del frame 'local' al frame 'body' (posición y orientación del UAV)
+        # Publish transform from 'global' to 'body' frame (UAV pose)
         t = TransformStamped()
         
-        # Establecer headers
+        # Set headers
         t.header.stamp = self.get_clock().now().to_msg()
         t.header.frame_id = 'global'
         t.child_frame_id = f'{agent_id}/body'
         
-        # Establecer posición relativa al marco local
+        # Set translation
         t.transform.translation.x = float(x)
         t.transform.translation.y = float(y)
         t.transform.translation.z = float(z)
 
-        # Establecer orientación
+        # Set orientation
         t.transform.rotation.w = 1.0
         t.transform.rotation.x = 0.0
         t.transform.rotation.y = 0.0
         t.transform.rotation.z = 0.0
         
-        # Publicar transformación dinámica
+        # Publish dynamic transform
         self.tf_broadcaster.sendTransform(t)
 
 def main(args=None):

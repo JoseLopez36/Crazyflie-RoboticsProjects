@@ -14,7 +14,7 @@ class ControlNode(Node):
     def __init__(self):
         super().__init__("control_node")
 
-        # Parámetros
+        # Parameters
         default_agent_id = self.get_namespace().lstrip("/") or ""
         self.declare_parameter("agent_id", default_agent_id)
         self.declare_parameter("target_altitude", 2.0)
@@ -30,7 +30,7 @@ class ControlNode(Node):
         self.auto_land_on_finish = self.get_parameter("auto_land_on_finish").get_parameter_value().bool_value
         self.land_height = self.get_parameter("land_height").get_parameter_value().double_value
 
-        # QoS para trayectorias
+        # QoS for trajectories
         qos_profile_trajectory = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -38,14 +38,14 @@ class ControlNode(Node):
             depth=1,
         )
 
-        # QoS para posiciones y setpoints
+        # QoS for positions and setpoints
         qos_profile_points = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
             depth=10
         )
 
-        # Estado del agente
+        # Agent state
         self.position = None  # PointStamped
         self.trajectory_points = []  # list[vision_msgs/Point2D]
         self.current_index = 0
@@ -54,7 +54,7 @@ class ControlNode(Node):
         self.land_sent = False
         self.disarm_sent = False
 
-        # Suscripciones
+        # Subscriptions
         self.position_sub = self.create_subscription(
             PointStamped,
             f"/{self.agent_id}/state/position",
@@ -75,33 +75,33 @@ class ControlNode(Node):
             qos_profile_points
         )
 
-        # Publicador: resto de trayectoria (solo visualización)
+        # Publisher: remaining trajectory (visualization only)
         self.remaining_traj_pub = self.create_publisher(
             Trajectory2D,
             f"/{self.agent_id}/planning/trajectory_remaining",
             qos_profile_trajectory,
         )
 
-        # Service clients para takeoff, land y arm
+        # Service clients for takeoff, land and arm
         self.takeoff_client = self.create_client(Takeoff, f'/{self.agent_id}/takeoff')
         self.land_client = self.create_client(Land, f'/{self.agent_id}/land')
         self.arm_client = self.create_client(Arm, f'/{self.agent_id}/arm')
 
-        # Timer: 10 Hz bucle de control
+        # Timer: 10 Hz control loop
         self.timer = self.create_timer(0.1, self.control_loop)
 
         self.get_logger().info(
-            f"Nodo de control iniciado para {self.agent_id}"
+            f"Control node started for {self.agent_id}"
         )
 
     def position_callback(self, msg: PointStamped):
         self.position = msg
 
     def trajectory_callback(self, msg: Trajectory2D):
-        # Si estamos aterrizando/ya aterrizados, ignorar nuevas trayectorias
+        # If we are landing/already landed, ignore new trajectories
         if self.agent_state in ("LANDING", "LANDED"):
             self.get_logger().warn(
-                f"{self.agent_id}: Trayectoria recibida durante {self.agent_state}; ignorando"
+                f"{self.agent_id}: Trajectory received during {self.agent_state}; ignoring"
             )
             return
         self.trajectory_points = list(msg.points)
@@ -109,7 +109,7 @@ class ControlNode(Node):
         self.publish_remaining_trajectory()
 
         self.get_logger().info(
-            f"{self.agent_id}: Nueva trayectoria recibida (len={len(self.trajectory_points)}). Reiniciando seguimiento"
+            f"{self.agent_id}: New trajectory received (len={len(self.trajectory_points)}). Restarting tracking"
         )
 
     def publish_remaining_trajectory(self):
@@ -117,7 +117,7 @@ class ControlNode(Node):
             return
         start = max(0, min(int(self.current_index), len(self.trajectory_points)))
         out = Trajectory2D()
-        # Re-publicar solo los puntos pendientes
+        # Re-publish only the pending points
         out.points = [
             Point2D(x=float(p.x), y=float(p.y))
             for p in self.trajectory_points[start:]
@@ -169,7 +169,7 @@ class ControlNode(Node):
         if self.agent_state in ("LANDING", "LANDED"):
             return
         self.agent_state = "LANDING"
-        self.get_logger().info(f"{self.agent_id}: Trayectoria completada. Iniciando ATERRIZAJE")
+        self.get_logger().info(f"{self.agent_id}: Trajectory completed. Starting LANDING")
         
     def control_loop(self):
         if self.position is None:
@@ -179,20 +179,20 @@ class ControlNode(Node):
 
         # --- INIT ---
         if self.agent_state == "INIT":
-            # Enviar setpoints iniciales en XY y altitud objetivo
+            # Send initial XY setpoints at target altitude
             self.publish_trajectory_setpoint(
                 current_pos.point.x, current_pos.point.y, self.target_altitude
             )
             self.setpoint_count += 1
 
-            # Cuando se haya enviado 10 setpoints, armar el Crazyflie y pasar al estado TAKEOFF
+            # After 10 setpoints have been sent, arm the Crazyflie and switch to TAKEOFF state
             if self.setpoint_count > 10:
-                # Enviar armar y takeoff
+                # Send arm and takeoff
                 self.arm()
                 self.takeoff(self.target_altitude, duration_sec=2.0)
 
                 self.agent_state = "TAKEOFF"
-                self.get_logger().info(f"{self.agent_id}: Iniciando TAKEOFF")
+                self.get_logger().info(f"{self.agent_id}: Starting TAKEOFF")
 
         # --- TAKEOFF ---
         elif self.agent_state == "TAKEOFF":
@@ -200,17 +200,17 @@ class ControlNode(Node):
                 current_pos.point.x, current_pos.point.y, self.target_altitude
             )
 
-            # Comprobar altitud
+            # Check altitude
             if current_pos.point.z >= (self.target_altitude - 0.5):
                 self.agent_state = "MISSION"
                 self.get_logger().info(
-                    f"{self.agent_id}: Despegue completado. Iniciando MISION"
+                    f"{self.agent_id}: Takeoff completed. Starting MISSION"
                 )
 
         # --- MISSION ---
         elif self.agent_state == "MISSION":
             if not self.trajectory_points:
-                # No hay planificación: hover
+                # No plan available: hover
                 self.publish_trajectory_setpoint(
                     current_pos.point.x, current_pos.point.y, self.target_altitude
                 )
@@ -225,19 +225,19 @@ class ControlNode(Node):
             dy = float(target_pos.y) - float(current_pos.point.y)
             d = math.sqrt(dx * dx + dy * dy)
 
-            # Llegada a waypoint
+            # Waypoint reached
             if d < self.acceptance_radius:
                 if idx >= last_idx:
-                    # Llegada al último punto: aterrizar
+                    # Reached the last point: land
                     if self.auto_land_on_finish:
                         self.start_landing()
                         return
-                    # Si no se quiere aterrizar automáticamente, quedarse en hover en último punto
+                    # If auto-landing is disabled, hover at the last point
                     self.current_index = n
                 else:
                     self.current_index = idx + 1
                     self.get_logger().info(
-                        f"{self.agent_id} ha llegado al punto {idx}. Moviendo a {self.current_index}"
+                        f"{self.agent_id} reached point {idx}. Moving to {self.current_index}"
                     )
                     target_pos = self.trajectory_points[self.current_index]
 
@@ -252,17 +252,17 @@ class ControlNode(Node):
                 current_pos.point.x, current_pos.point.y, self.land_height
             )
 
-            # Comprobar altitud
+            # Check altitude
             if current_pos.point.z >= (self.land_height + 0.05):
                 self.agent_state = "LANDED"
                 self.get_logger().info(
-                    f"{self.agent_id}: Aterrizaje completado (z={current_pos.point.z:.2f})"
+                    f"{self.agent_id}: Landing completed (z={current_pos.point.z:.2f})"
                 )
                 self.disarm()
 
         # --- LANDED ---
         elif self.agent_state == "LANDED":
-            # No publicar más setpoints
+            # Do not publish any more setpoints
             return
 
 def main(args=None):

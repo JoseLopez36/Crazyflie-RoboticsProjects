@@ -19,13 +19,13 @@ def generate_launch_description():
     ])
 
 def launch_setup(context):
-    # Obtener las rutas a los archivos de configuración del paquete
+    # Get paths to the package configuration files
     package_dir = get_package_share_directory('crazyflie_robotics_projects_pkg')
     mission_config_path = os.path.join(package_dir, 'config', 'mission.yaml')
     nodes_config_path = os.path.join(package_dir, 'config', 'nodes.yaml')
     launch_config_path = os.path.join(package_dir, 'config', 'launch.yaml')
     
-    # Cargar archivos de configuración del paquete
+    # Load package configuration files
     with open(launch_config_path, 'r') as f:
         launch = yaml.safe_load(f)
 
@@ -33,15 +33,15 @@ def launch_setup(context):
     config = context.launch_configurations.get('config', 'default.rviz')
     rviz_config_file = '/root/Crazyflie-RoboticsProjects/ros2_ws/src/crazyflie_robotics_projects_pkg/rviz/' + config
     
-    # Obtener las configuraciones de activación de los nodos
+    # Get node enable/log-level configuration
     nodes = {
         'visualization': launch.get('visualization', [True, 'info'])
     }
 
-    # Inicializar la lista de acciones
+    # Initialize action list
     actions = []
 
-    # Agregar nodo de RViz
+    # Add RViz node
     actions.append(
         Node(
             package='rviz2',
@@ -51,7 +51,7 @@ def launch_setup(context):
         )
     )
 
-    # Condicionalmente agregar el nodo de visualización
+    # Conditionally add the visualization node
     if nodes['visualization'][0]:
         actions.append(
             Node(

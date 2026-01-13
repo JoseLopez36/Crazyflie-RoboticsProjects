@@ -1,4 +1,4 @@
-echo "Ejemplo para llamar al servicio /darp_service"
+echo "Example call to the /darp_service service"
 
 ros2 service call /darp_service crazyflie_robotics_projects_msgs/srv/DarpPetition "{
     min_x: -5,

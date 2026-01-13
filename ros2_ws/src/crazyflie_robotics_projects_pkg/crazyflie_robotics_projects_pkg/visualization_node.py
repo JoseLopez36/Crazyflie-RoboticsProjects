@@ -20,21 +20,21 @@ class RGBA:
 
 def palette(alpha: float) -> List[RGBA]:
     return [
-        RGBA(1.0, 0.0, 0.0, alpha),  # rojo
-        RGBA(0.0, 1.0, 0.0, alpha),  # verde
-        RGBA(0.0, 0.6, 1.0, alpha),  # azul
-        RGBA(1.0, 1.0, 0.0, alpha),  # amarillo
+        RGBA(1.0, 0.0, 0.0, alpha),  # red
+        RGBA(0.0, 1.0, 0.0, alpha),  # green
+        RGBA(0.0, 0.6, 1.0, alpha),  # blue
+        RGBA(1.0, 1.0, 0.0, alpha),  # yellow
         RGBA(1.0, 0.0, 1.0, alpha),  # magenta
-        RGBA(0.0, 1.0, 1.0, alpha),  # cian
-        RGBA(1.0, 0.5, 0.0, alpha),  # naranja
-        RGBA(0.6, 0.0, 1.0, alpha),  # púrpura
+        RGBA(0.0, 1.0, 1.0, alpha),  # cyan
+        RGBA(1.0, 0.5, 0.0, alpha),  # orange
+        RGBA(0.6, 0.0, 1.0, alpha),  # purple
     ]
 
 class VisualizationNode(Node):
     def __init__(self) -> None:
         super().__init__("visualization_node")
 
-        # Parámetros
+        # Parameters
         self.declare_parameter("agents.ids", [""])
         self.declare_parameter("drones.position_scale", 0.35)
         self.declare_parameter("drones.setpoint_scale", 0.25)
@@ -64,7 +64,7 @@ class VisualizationNode(Node):
         self.min_x = float(self.get_parameter("tasks.min_x").get_parameter_value().double_value)
         self.min_y = float(self.get_parameter("tasks.min_y").get_parameter_value().double_value)
 
-        # QoS para trayectorias
+        # QoS for trajectories
         qos_profile_trajectory = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -72,14 +72,14 @@ class VisualizationNode(Node):
             depth=1,
         )
 
-        # QoS para posiciones y setpoints
+        # QoS for positions and setpoints
         qos_profile_points = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
             depth=10
         )
 
-        # QoS para zonas
+        # QoS for zones
         qos_profile_zones = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -87,7 +87,7 @@ class VisualizationNode(Node):
             depth=1,
         )
 
-        # QoS para marcadores
+        # QoS for markers
         qos_profile_markers = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -95,18 +95,18 @@ class VisualizationNode(Node):
             depth=10,
         )
 
-        # Publicador de marcadores
+        # Marker publishers
         self.drone_markers_pub = self.create_publisher(MarkerArray, "/visualization/drones", qos_profile_markers)
         self.trajectory_markers_pub = self.create_publisher(MarkerArray, "/visualization/trajectories", qos_profile_markers)
         self.zones_markers_pub = self.create_publisher(MarkerArray, "/visualization/zones", qos_profile_markers)
 
-        # Suscriptores de posiciones y setpoints
+        # Position and setpoint subscribers
         self.positions: Dict[str, Optional[PointStamped]] = {aid: None for aid in self.agent_ids}
         self.setpoints: Dict[str, Optional[PointStamped]] = {aid: None for aid in self.agent_ids}
         self.pos_subs = {}
         self.setpoint_subs = {}
 
-        # Suscriptores de trayectorias
+        # Trajectory subscribers
         self.traj_subs = {}
         self.traj_remaining_subs = {}
         self.colors = palette(alpha=self.alpha)
@@ -132,7 +132,7 @@ class VisualizationNode(Node):
                 qos_profile_trajectory
             )
 
-        # Suscriptor de zonas
+        # Zones subscriber
         self.zones_sub = self.create_subscription(
             Int32MultiArray,
             "/planning/zones",
@@ -140,7 +140,7 @@ class VisualizationNode(Node):
             qos_profile_zones
         )
 
-        self.get_logger().info(f"Nodo de visualizacion iniciado")
+        self.get_logger().info("Visualization node started")
 
     def position_cb(self, msg: PointStamped, agent_id: str) -> None:
         self.positions[agent_id] = msg
@@ -184,7 +184,7 @@ class VisualizationNode(Node):
             c = self.color_for_agent(agent_id)
             ns = f"drone/{agent_id}"
 
-            # Marcador de posición del dron (esfera)
+            # Drone position marker (sphere)
             m_pos = Marker()
             m_pos.header.frame_id = "map"
             m_pos.header.stamp = now
@@ -206,7 +206,7 @@ class VisualizationNode(Node):
                 m_pos.pose.position.z = float(pos.point.z + self.z_offset)
             out.markers.append(m_pos)
 
-            # Marcador de setpoint (esfera pequeña)
+            # Setpoint marker (small sphere)
             m_sp = Marker()
             m_sp.header.frame_id = "map"
             m_sp.header.stamp = now
@@ -228,7 +228,7 @@ class VisualizationNode(Node):
                 m_sp.pose.position.z = float(sp.point.z + self.z_offset)
             out.markers.append(m_sp)
 
-            # Flecha desde posición a setpoint
+            # Arrow from position to setpoint
             m_arrow = Marker()
             m_arrow.header.frame_id = "map"
             m_arrow.header.stamp = now
@@ -252,7 +252,7 @@ class VisualizationNode(Node):
                 m_arrow.points = [p0, p1]
             out.markers.append(m_arrow)
 
-            # Etiqueta (id de agente + altitud)
+            # Label (agent id + altitude)
             m_text = Marker()
             m_text.header.frame_id = "map"
             m_text.header.stamp = now
@@ -283,7 +283,7 @@ class VisualizationNode(Node):
 
         ns = f"trajectory/{agent_id}"
 
-        # Tipo LINE_STRIP
+        # LINE_STRIP type
         line = Marker()
         line.header.frame_id = "map"
         line.header.stamp = now
@@ -299,7 +299,7 @@ class VisualizationNode(Node):
         line.color.a = float(c.a)
         line.points = [Point(x=float(x), y=float(y), z=0.0) for x, y in points_xy]
 
-        # Tipo SPHERE_LIST
+        # SPHERE_LIST type
         spheres = Marker()
         spheres.header.frame_id = "map"
         spheres.header.stamp = now
@@ -329,7 +329,7 @@ class VisualizationNode(Node):
 
         ns = "zones"
 
-        # Celdas rellenas
+        # Filled cells
         fill = Marker()
         fill.header.frame_id = "map"
         fill.header.stamp = now
@@ -342,7 +342,7 @@ class VisualizationNode(Node):
         fill.scale.y = float(cell)
         fill.scale.z = float(zh)
 
-        # Contornos (bordes de celdas entre diferentes zonas)
+        # Outlines (cell edges between different zones)
         outline = Marker()
         outline.header.frame_id = "map"
         outline.header.stamp = now
@@ -361,7 +361,7 @@ class VisualizationNode(Node):
                 fill.points.append(Point(x=float(x), y=float(y), z=zc))
                 fill.colors.append(self.color_for_zone(zval, alpha=float(self.zones_fill_alpha)))
 
-        # Dibujar bordes derecho/inferior para cada celda no cero; tratar el exterior como 0
+        # Draw right/bottom edges for each non-zero cell; treat outside as 0
         zline = zc + 0.5 * zh
         for r in range(rows):
             y0 = min_y + float(r) * cell
@@ -423,14 +423,14 @@ class VisualizationNode(Node):
         except Exception:
             dims = []
 
-        # Preferir dimensiones etiquetadas si están presentes
+        # Prefer labeled dimensions if present
         for d in dims:
             if getattr(d, "label", "") == "rows":
                 rows = int(d.size)
             elif getattr(d, "label", "") == "cols":
                 cols = int(d.size)
 
-        # Respaldo a dimensiones posicionales
+        # Fallback to positional dimensions
         if (rows <= 0 or cols <= 0) and len(dims) >= 2:
             rows = int(dims[0].size)
             cols = int(dims[1].size)
@@ -449,13 +449,13 @@ class VisualizationNode(Node):
         return self.colors[idx % len(self.colors)]
 
     def color_for_zone(self, zone_value: int, alpha: float) -> ColorRGBA:
-        # Si es visitado, asignar gris oscuro
+        # If visited, assign dark gray
         if zone_value == 0:
             return ColorRGBA(r=0.2, g=0.2, b=0.2, a=alpha)
-        # Si es obstáculo, asignar gris claro
+        # If obstacle, assign light gray
         if zone_value == -1:
             return ColorRGBA(r=0.7, g=0.7, b=0.7, a=alpha)
-        # zone_value: 1..N => índice de agente zone_value-1
+        # zone_value: 1..N => agent index zone_value-1
         idx = max(0, int(zone_value) - 1)
         base = palette(alpha=alpha)[idx % len(self.colors)]
         c = ColorRGBA()

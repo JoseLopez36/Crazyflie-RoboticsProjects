@@ -17,19 +17,19 @@
 
 /**/visualization_node:
   ros__parameters:
-    # Parámetros de visualización de agentes
+    # Agent visualization parameters
     drones:
       position_scale: 0.1
       setpoint_scale: 0.075
       arrow_width: 0.04
       label_scale: 0.2
       z_offset: 0.0025
-    # Parámetros de visualización de trayectorias
+    # Trajectory visualization parameters
     trajectories:
       line_width: 0.025
       point_scale: 0.05
       alpha: 0.5
-    # Parámetros de visualización de zonas
+    # Zone visualization parameters
     zones:
       cell_size: 0.25
       fill_alpha: 0.05

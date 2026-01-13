@@ -6,11 +6,11 @@ import os
 import yaml
 
 def generate_launch_description():
-    # Declarar argumento de lanzamiento para el archivo de configuración de Crazyflie
+    # Declare launch argument for the Crazyflie configuration file
     cf_config_arg = DeclareLaunchArgument(
         'cf_config',
         default_value='simulation_config.yaml',
-        description='Nombre del archivo de configuración de Crazyflie (debe estar en config/crazyflie/)'
+        description='Crazyflie configuration file name (must be in config/crazyflie/)'
     )
     
     return LaunchDescription([
@@ -19,36 +19,36 @@ def generate_launch_description():
     ])
 
 def launch_setup(context):
-    # Obtener el valor del argumento de lanzamiento
+    # Get the launch argument value
     cf_config_filename = context.launch_configurations.get('cf_config', 'simulation_config.yaml')
     
-    # Obtener las rutas a los archivos de configuración del paquete
+    # Get paths to the package configuration files
     package_dir = get_package_share_directory('crazyflie_robotics_projects_pkg')
     cf_config_path = os.path.join(package_dir, 'config', 'crazyflie', cf_config_filename)
 
-    # Obtener las rutas a los archivos de configuración de Crazyflie
+    # Get paths to the Crazyflie configuration files
     cf_package_dir = get_package_share_directory('crazyflie')
     cf_server_yaml = os.path.join(cf_package_dir, 'config', 'server.yaml')
     cf_urdf = os.path.join(cf_package_dir, 'urdf', 'crazyflie_description.urdf')
     
-    # Cargar archivos de configuración del paquete
+    # Load package configuration files
     with open(cf_config_path, 'r') as f:
         cf_config = yaml.safe_load(f)
 
-    # Cargar archivos de configuración de Crazyflie
+    # Load Crazyflie configuration files
     with open(cf_server_yaml, 'r') as f:
         cf_server_config = yaml.safe_load(f)
     with open(cf_urdf, 'r') as f:
         cf_robot_desc = f.read()
 
-    # Crear parámetros para el nodo de server Crazyflie
+    # Create parameters for the Crazyflie server node
     cf_server_params = [cf_config] + [cf_server_config['/crazyflie_server']['ros__parameters']]
     cf_server_params[1]['robot_description'] = cf_robot_desc
 
-    # Inicializar la lista de acciones
+    # Initialize action list
     actions = []
 
-    # Agregar nodo de server Crazyflie
+    # Add Crazyflie server node
     actions.append(
         Node(
             package='crazyflie',

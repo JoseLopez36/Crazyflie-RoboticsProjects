@@ -11,19 +11,19 @@ def generate_launch_description():
     ])
 
 def launch_setup(context):
-    # Obtener las rutas a los archivos de configuración del paquete
+    # Get paths to the package configuration files
     package_dir = get_package_share_directory('crazyflie_robotics_projects_pkg')
     mission_config_path = os.path.join(package_dir, 'config', 'mission.yaml')
     nodes_config_path = os.path.join(package_dir, 'config', 'nodes.yaml')
     launch_config_path = os.path.join(package_dir, 'config', 'launch.yaml')
     
-    # Cargar archivos de configuración del paquete
+    # Load package configuration files
     with open(launch_config_path, 'r') as f:
         launch = yaml.safe_load(f)
     with open(mission_config_path, 'r') as f:
         mission = yaml.safe_load(f)
     
-    # Obtener las configuraciones de activación de los nodos
+    # Get node enable/log-level configuration
     nodes = {
         'planning': launch.get('planning', [True, 'info']),
         'darp': launch.get('darp', [True, 'info']),
@@ -31,17 +31,17 @@ def launch_setup(context):
         'transform': launch.get('transform', [True, 'info'])
     }
 
-    # Obtener IDs de agentes desde mission.yaml
+    # Get agent IDs from mission.yaml
     agents_ids = []
     try:
         agents_ids = mission.get('/**', {}).get('ros__parameters', {}).get('agents', {}).get('ids', [])
     except Exception:
         agents_ids = []
 
-    # Inicializar la lista de acciones
+    # Initialize action list
     actions = []
 
-    # Condicionalmente agregar el nodo de planificación
+    # Conditionally add the planning node
     if nodes['planning'][0]:
         actions.append(
             Node(
@@ -54,7 +54,7 @@ def launch_setup(context):
             )
         )
 
-    # Condicionalmente agregar el nodo DARP
+    # Conditionally add the DARP node
     if nodes['darp'][0]:
         actions.append(
             Node(
@@ -67,7 +67,7 @@ def launch_setup(context):
             )
         )
 
-    # Condicionalmente agregar N nodos de control (uno por agente)
+    # Conditionally add N control nodes (one per agent)
     if nodes['control'][0]:
         for agent_id in agents_ids:
             actions.append(
@@ -82,7 +82,7 @@ def launch_setup(context):
                 )
             )
 
-    # Condicionalmente agregar el nodo de transformacion
+    # Conditionally add the transform node
     if nodes['transform'][0]:
         actions.append(
             Node(

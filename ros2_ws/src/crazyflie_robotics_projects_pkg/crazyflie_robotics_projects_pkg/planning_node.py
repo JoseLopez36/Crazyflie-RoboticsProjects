@@ -16,7 +16,7 @@ class PlanningNode(Node):
     def __init__(self):
         super().__init__("planning_node")
 
-        # Parámetros
+        # Parameters
         self.declare_parameter("agents.ids", [""])
         self.declare_parameter("cell_size", 2.0)
         self.declare_parameter("visited.update_period", 0.5)
@@ -39,13 +39,13 @@ class PlanningNode(Node):
         # Grid (cache)
         self.rows, self.cols = self.compute_rows_cols()
 
-        # Estado de mapa visitado: celdas ya cubiertas por cualquier agente
-        self.visited_mask = set()  # set[int] de índices flat (row*cols+col)
+        # Visited map state: cells already covered by any agent
+        self.visited_mask = set()  # set[int] of flat indices (row*cols+col)
         self.static_obstacle_cells = self.compute_static_obstacle_cells()
-        self.zones_current = None  # list[int] con visited forzado a 0
+        self.zones_current = None  # list[int] with visited forced to 0
         self.last_published_zones = None  # list[int]
 
-        # QoS para trayectorias
+        # QoS for trajectories
         qos_profile_trajectory = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -53,14 +53,14 @@ class PlanningNode(Node):
             depth=1,
         )
 
-        # QoS para posiciones y setpoints
+        # QoS for positions and setpoints
         qos_profile_points = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
             depth=10
         )
 
-        # QoS para zonas
+        # QoS for zones
         qos_profile_zones = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -68,7 +68,7 @@ class PlanningNode(Node):
             depth=1,
         )
 
-        # Suscripciones de posiciones por agente
+        # Position subscriptions per agent
         self.position_subscribers = {}
         self.positions = {}  # agent_id -> PointStamped
         self.position_received = {}  # agent_id -> bool
@@ -83,7 +83,7 @@ class PlanningNode(Node):
                 qos_profile_points
             )
 
-        # Publicadores de trayectorias por agente
+        # Trajectory publishers per agent
         self.trajectory_publishers = {}
         for agent_id in self.agent_ids:
             self.trajectory_publishers[agent_id] = self.create_publisher(
@@ -92,34 +92,34 @@ class PlanningNode(Node):
                 qos_profile_trajectory
             )
 
-        # Publicador de zonas
+        # Zones publisher
         self.zones_pub = self.create_publisher(
             Int32MultiArray,
             "/planning/zones",
             qos_profile_zones,
         )
 
-        # Cliente de servicio DARP
+        # DARP service client
         self.darp_client = self.create_client(DarpPetition, "darp_service")
         while not self.darp_client.wait_for_service(timeout_sec=0.5):
-            self.get_logger().info("Servicio DARP no disponible, esperando de nuevo...")
+            self.get_logger().info("DARP service not available, waiting again...")
 
         self.plan_requested = False
         self.plan_done = False
 
-        # Timer para solicitar la planificación inicial una vez que se reciben todas las posiciones
+        # Timer to request the initial plan once all positions have been received
         self.timer = self.create_timer(0.5, self.maybe_request_initial_plan)
 
-        # Timer para marcar celdas visitadas y refrescar zones
+        # Timer to mark visited cells and refresh zones
         self.visited_timer = self.create_timer(
             float(self.visited_update_period) if self.visited_update_period > 0.0 else 0.5,
             self.update_visited_from_positions,
         )
 
-        # Servicio de replanning bajo demanda
+        # On-demand replanning service
         self.replan_srv = self.create_service(Trigger, "/planning/replan", self.replan_callback)
 
-        self.get_logger().info("Nodo de planificacion iniciado. Esperando posiciones iniciales...")
+        self.get_logger().info("Planning node started. Waiting for initial positions...")
 
     def position_callback(self, msg: PointStamped, agent_id: str):
         self.positions[agent_id] = msg
@@ -139,9 +139,9 @@ class PlanningNode(Node):
 
     def request_darp(self, include_visited_as_obstacles: bool):
         if include_visited_as_obstacles:
-            self.get_logger().info("Peticion de algoritmo DARP (replanning con visited)...")
+            self.get_logger().info("DARP algorithm request (replanning with visited)...")
         else:
-            self.get_logger().info("Peticion de algoritmo DARP (planificacion inicial)...")
+            self.get_logger().info("DARP algorithm request (initial planning)...")
         req = DarpPetition.Request()
         req.min_x = float(self.min_x)
         req.max_x = float(self.max_x)
@@ -149,14 +149,14 @@ class PlanningNode(Node):
         req.max_y = float(self.max_y)
         req.visualization = False
 
-        # Obstaculos desde parametros
+        # Obstacles from parameters
         for x, y in zip(self.obstacles_positions_x, self.obstacles_positions_y):
             p = Point2D()
             p.x = float(x)
             p.y = float(y)
             req.obstacle_points.append(p)
 
-        # Posiciones iniciales desde suscripciones
+        # Initial positions from subscriptions
         for agent_id in self.agent_ids:
             pos = self.positions.get(agent_id)
             if pos is None:
@@ -166,7 +166,7 @@ class PlanningNode(Node):
             p.y = float(pos.point.y)
             req.initial_positions.append(p)
 
-        # Celdas visitadas como obstáculos (solo para replanning)
+        # Visited cells as obstacles (replanning only)
         if include_visited_as_obstacles:
             start_cells = set()
             for agent_id in self.agent_ids:
@@ -197,30 +197,30 @@ class PlanningNode(Node):
         try:
             response = future.result()
         except Exception as e:
-            self.get_logger().error(f"Llamada al servicio DARP fallida: {e}")
+            self.get_logger().error(f"DARP service call failed: {e}")
             self.plan_requested = False
             return
 
         if not response.trajectories:
-            self.get_logger().error("DARP devolvio trayectorias vacias")
+            self.get_logger().error("DARP returned empty trajectories")
             self.plan_requested = False
             return
 
         self.get_logger().info(
-            f"Solucion DARP recibida con {len(response.trajectories)} trayectorias"
+            f"DARP solution received with {len(response.trajectories)} trajectories"
         )
 
-        # Cachear y publicar zones para visualización (visited = 0)
+        # Cache and publish zones for visualization (visited = 0)
         if response.zones:
             self.zones_current = list(response.zones)
             self.apply_visited_to_zones_inplace(self.zones_current)
             self.publish_zones(self.zones_current)
 
-        # Publicar trayectorias por agente basado en el orden de indices
+        # Publish trajectories per agent based on index order
         for i, traj in enumerate(response.trajectories):
             if i >= len(self.agent_ids):
                 self.get_logger().warn(
-                    f"Mas trayectorias que UAVs: Trayectoria {i} ignorada"
+                    f"More trajectories than UAVs: trajectory {i} ignored"
                 )
                 continue
             agent_id = self.agent_ids[i]
@@ -228,7 +228,7 @@ class PlanningNode(Node):
             msg.points = traj.points
             self.trajectory_publishers[agent_id].publish(msg)
             self.get_logger().info(
-                f"Publicada trayectoria (len={len(msg.points)}) en /{agent_id}/planning/trajectory"
+                f"Published trajectory (len={len(msg.points)}) on /{agent_id}/planning/trajectory"
             )
 
         self.plan_done = True
@@ -237,18 +237,18 @@ class PlanningNode(Node):
     def replan_callback(self, request, response):
         if self.plan_requested:
             response.success = False
-            response.message = "Replan rechazado: ya hay una petición DARP en curso"
+            response.message = "Replan rejected: there is already a DARP request in progress"
             return response
         if not self.all_positions_received():
             response.success = False
-            response.message = "Replan rechazado: faltan posiciones iniciales"
+            response.message = "Replan rejected: initial positions are missing"
             return response
 
         self.plan_requested = True
-        self.get_logger().info("Replan solicitado: llamando a DARP con visited como obstáculos")
+        self.get_logger().info("Replan requested: calling DARP with visited as obstacles")
         self.request_darp(include_visited_as_obstacles=True)
         response.success = True
-        response.message = "Replan solicitado"
+        response.message = "Replan requested"
         return response
 
     def compute_rows_cols(self):
@@ -293,7 +293,7 @@ class PlanningNode(Node):
             idx = int(cell)
             if idx < 0 or idx >= len(zones_list):
                 continue
-            # No sobreescribir obstáculos
+            # Do not overwrite obstacles
             if int(zones_list[idx]) == -1:
                 continue
             zones_list[idx] = 0
@@ -334,7 +334,7 @@ class PlanningNode(Node):
         if not changed:
             return
 
-        # Si ya tenemos zones, aplicar visited y republicar
+        # If we already have zones, apply visited and republish
         if self.zones_current is not None:
             self.apply_visited_to_zones_inplace(self.zones_current)
             self.publish_zones(self.zones_current)

@@ -5,11 +5,11 @@
       initial_positions_x: [0.0, 1.0]
       initial_positions_y: [0.0, 1.0]
     tasks:
-      # Área de la tarea en metros: rectángulo [min, max)
+      # Task area in meters: rectangle [min, max)
       min_x: 0.5
       max_x: 3.0
       min_y: 0.5
       max_y: 2.0
-      # Posiciones de los obstáculos en metros
+      # Obstacle positions in meters
       obstacles_positions_x: [2.5]
       obstacles_positions_y: [1.5]

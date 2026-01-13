@@ -18,19 +18,19 @@ class DarpNode(Node):
     def __init__(self):
         super().__init__("darp_node")
 
-        # Parámetros
+        # Parameters
         self.declare_parameter("cell_size", 2.0)
         self.cell_size = self.get_parameter("cell_size").get_parameter_value().double_value
 
-        # Servicio para procesar peticiones DARP
+        # Service to process DARP requests
         self.srv = self.create_service(
             DarpPetition, "darp_service", self.service_callback
         )
 
-        self.get_logger().info("Nodo DARP listo para recibir peticiones.")
+        self.get_logger().info("DARP node ready to receive requests.")
 
     def service_callback(self, request, response):
-        self.get_logger().info("Petición recibida")
+        self.get_logger().info("Request received")
 
         extent_x = request.max_x - request.min_x
         extent_y = request.max_y - request.min_y
@@ -38,7 +38,7 @@ class DarpNode(Node):
         cols = int(round(extent_x / self.cell_size))
         rows = int(round(extent_y / self.cell_size))
 
-        # Convertir coordenadas de interfaz a índices de celda DARP
+        # Convert interface coordinates to DARP cell indices
         initial_positions, obstacles_positions = self.process_darp_input(
             request.initial_positions,
             request.obstacle_points,
@@ -48,7 +48,7 @@ class DarpNode(Node):
             cols,
         )
         
-        # Ejecutar algoritmo DARP
+        # Run DARP algorithm
         darp = MultiRobotPathPlanner(
             nx=rows,
             ny=cols,
@@ -63,7 +63,7 @@ class DarpNode(Node):
             self.get_logger().error("DARP failed")
             return response
 
-        # Convertir resultados de DARP a mensajes ROS2
+        # Convert DARP results to ROS 2 messages
         response.trajectories, response.zones = self.process_darp_output(
             darp,
             request.min_x,
@@ -72,40 +72,40 @@ class DarpNode(Node):
             cols
         )
 
-        self.get_logger().info("Petición procesada exitosamente")
+        self.get_logger().info("Request processed successfully")
         return response
 
-    """ Convierte puntos Point2D (coordenadas del mundo) a índices de celda para DARP """
+    """Convert Point2D points (world coordinates) to cell indices for DARP."""
     def process_darp_input(self, initial_positions_msg, obstacle_points_msg, min_x, min_y, rows, cols):
-        # Convertir posiciones iniciales de robots
+        # Convert initial robot positions
         initial_positions = []
         for point in initial_positions_msg:
             x = float(point.x)
             y = float(point.y)
 
-            # Trasladar coordenadas al origen del grid
+            # Translate coordinates to the grid origin
             grid_x = int(math.floor((x - float(min_x)) / self.cell_size))
             grid_y = int(math.floor((y - float(min_y)) / self.cell_size))
 
-            # Asegurar que las coordenadas estén dentro del grid
+            # Ensure coordinates are inside the grid
             grid_x = max(0, min(cols - 1, grid_x))
             grid_y = max(0, min(rows - 1, grid_y))
 
-            # Convertir a índice de celda
+            # Convert to cell index
             cell = grid_y * cols + grid_x
             initial_positions.append(cell)
 
-        # Convertir posiciones de obstáculos
+        # Convert obstacle positions
         obstacles_positions = []
         for point in obstacle_points_msg:
             x = float(point.x)
             y = float(point.y)
 
-            # Trasladar coordenadas al origen del grid
+            # Translate coordinates to the grid origin
             grid_x = int(math.floor((x - float(min_x)) / self.cell_size))
             grid_y = int(math.floor((y - float(min_y)) / self.cell_size))
 
-            # Asegurar que las coordenadas estén dentro del grid
+            # Ensure coordinates are inside the grid
             grid_x = max(0, min(cols - 1, grid_x))
             grid_y = max(0, min(rows - 1, grid_y))
 
@@ -114,29 +114,29 @@ class DarpNode(Node):
 
         return initial_positions, obstacles_positions
 
-    """ Convierte resultados de DARP (trayectorias y zonas) a mensajes ROS2. """
+    """Convert DARP results (trajectories and zones) to ROS 2 messages."""
     def process_darp_output(self, planner, min_x, min_y, rows, cols):
-        # Los paths vienen en subceldas
+        # Paths come in sub-cells
         subcell_size = self.cell_size / 2.0
 
         trajectories = []
 
-        # Procesar trayectorias de cada robot
+        # Process trajectories for each robot
         for robot_id in range(planner.darp_instance.droneNo):
             path = planner.best_case.paths[robot_id]
 
             traj = Trajectory2D()
 
             if len(path) > 0:
-                # Punto inicial
+                # Initial point
                 first_move = path[0]
                 p = Point2D()
-                # (row, col) de subcelda -> (x,y) en metros (centro de subcelda)
+                # (row, col) sub-cell -> (x,y) meters (sub-cell center)
                 p.x = float(float(min_x) + (float(first_move[1]) + 0.5) * subcell_size)
                 p.y = float(float(min_y) + (float(first_move[0]) + 0.5) * subcell_size)
                 traj.points.append(p)
 
-                # Puntos siguientes
+                # Next points
                 for move in path:
                     p = Point2D()
                     p.x = float(float(min_x) + (float(move[3]) + 0.5) * subcell_size)
@@ -145,20 +145,20 @@ class DarpNode(Node):
 
             trajectories.append(traj)
 
-        # Procesar matriz de zonas
+        # Process zones matrix
         assignment_matrix = planner.darp_instance.A
         zones_matrix = np.zeros((rows, cols), dtype=np.int32)
 
         for i in range(rows):
             for j in range(cols):
                 cell_value = int(assignment_matrix[i, j])
-                # Si es obstáculo, asignar -1. Si no, asignar ID de UAV + 1
+                # If obstacle, assign -1; otherwise assign UAV id + 1
                 if cell_value == planner.darp_instance.droneNo:
                     zones_matrix[i, j] = -1
                 else:
                     zones_matrix[i, j] = cell_value + 1
 
-        # Aplanar matriz para el mensaje
+        # Flatten matrix for the message
         zones = zones_matrix.flatten().tolist()
 
         return trajectories, zones
