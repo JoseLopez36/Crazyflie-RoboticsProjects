@@ -7,7 +7,7 @@ robots:
     type: cf_sim  # see robot_types
 
   cf_1:
-    enabled: false
+    enabled: true
     uri: udp://0.0.0.0:19851
     initial_position: [1.0, 1.0, 0.0]
     type: cf_sim  # see robot_types

@@ -71,7 +71,7 @@ bash /root/Crazyflie-RoboticsProjects/tools/sitl_multiagent_text.sh -m crazyflie
 Run Crazyflie server:
 ```bash
 waitForCfsGazebo; sleep 2;
-ros2 launch crazyflie_robotics_projects_pkg crazyflie.launch.py cf_config:=custom_config.yaml
+ros2 launch crazyflie_robotics_projects_pkg crazyflie.launch.py backend:=cflib cf_config:=custom_config.yaml
 ```
 
 Run system:
