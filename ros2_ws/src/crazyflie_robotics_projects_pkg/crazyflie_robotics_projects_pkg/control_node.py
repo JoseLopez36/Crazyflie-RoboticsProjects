@@ -189,7 +189,7 @@ class ControlNode(Node):
             if self.setpoint_count > 10:
                 # Send arm and takeoff
                 self.arm()
-                self.takeoff(self.target_altitude, duration_sec=2.0)
+                self.takeoff(self.target_altitude, duration_sec=4.0)
 
                 self.agent_state = "TAKEOFF"
                 self.get_logger().info(f"{self.agent_id}: Starting TAKEOFF")
