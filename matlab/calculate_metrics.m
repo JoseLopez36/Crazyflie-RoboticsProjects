@@ -23,6 +23,7 @@ end
 % Topics
 topics_pose = ["/cf_0/pose", "/cf_1/pose"];
 topics_setpoint = ["/cf_0/control/setpoint", "/cf_1/control/setpoint"];
+names = {'cf_0', 'cf_1'};
 
 % Data containers
 data_pose = containers.Map;
@@ -88,62 +89,70 @@ if bParseSetpoint
     end
 end
 
-% Plotting Configuration
-figure('Name', 'Crazyflie Trajectories', 'Color', 'w', 'Position', [100, 100, 1920, 1080]);
-hold on;
-grid on;
-box on;
-axis equal;
-set(gca, 'FontSize', 14, 'GridAlpha', 0.1, 'LineWidth', 1.5);
+% Calculate Metrics
+fprintf('\n================================ METRICS ================================\n');
+fprintf('%-10s %-15s %-15s %-15s %-15s\n', 'Robot', 'Duration [s]', 'Distance [m]', 'Avg Speed [m/s]', 'RMSE [m]');
 
-title('Crazyflie Multi-Agent Trajectories', 'FontSize', 18, 'FontWeight', 'bold');
-xlabel('X Position [m]', 'FontSize', 16); 
-ylabel('Y Position [m]', 'FontSize', 16);
-
-% Color Palette
-colors = [0 0.4470 0.7410;       % Blue
-          0.8500 0.3250 0.0980;  % Red
-          0.9290 0.6940 0.1250;  % Yellow
-          0.4940 0.1840 0.5560]; % Purple
-names = {'cf\_0', 'cf\_1'};
-
-% Plot Setpoints First (Background layer)
-for i = 1:length(topics_setpoint)
-    topic = topics_setpoint(i);
-    if isKey(data_setpoint, topic)
-        d = data_setpoint(topic);
-        c = colors(mod(i-1, size(colors,1)) + 1, :);
-        plot(d.x, d.y, '--', 'Color', [c 0.4], 'LineWidth', 2.5, ...
-            'DisplayName', [names{i} ' Ref']);
-    end
-end
-
-% Plot Poses (Foreground layer)
 for i = 1:length(topics_pose)
-    topic = topics_pose(i);
-    if isKey(data_pose, topic)
-        d = data_pose(topic);
-        c = colors(mod(i-1, size(colors,1)) + 1, :);
+    t_pose = topics_pose(i);
+    t_setpoint = topics_setpoint(i);
+    name = names{i};
+    
+    duration = NaN;
+    distance = NaN;
+    avg_speed = NaN;
+    rmse = NaN;
+    
+    if isKey(data_pose, t_pose)
+        d_p = data_pose(t_pose);
         
-        % Main trajectory line
-        plot(d.x, d.y, '-', 'Color', c, 'LineWidth', 3.0, ...
-            'DisplayName', [names{i} ' Curr']);
+        % Duration
+        if length(d_p.time) > 1
+            duration = d_p.time(end) - d_p.time(1);
+            
+            % Distance
+            dx = diff(d_p.x);
+            dy = diff(d_p.y);
+            dz = diff(d_p.z);
+            dist_segments = sqrt(dx.^2 + dy.^2 + dz.^2);
+            distance = sum(dist_segments);
+            
+            % Avg Speed
+            if duration > 0
+                avg_speed = distance / duration;
+            end
+        end
         
-        % Mark start position (Circle)
-        scatter(d.x(1), d.y(1), 100, c, 'filled', 'o', ...
-            'MarkerEdgeColor', 'k', 'HandleVisibility', 'off');
-        
-        % Mark end position (Square)
-        scatter(d.x(end), d.y(end), 120, c, 'filled', 's', ...
-            'MarkerEdgeColor', 'k', 'HandleVisibility', 'off');
+        % RMSE (assume aligned indices)
+        if isKey(data_setpoint, t_setpoint)
+            d_s = data_setpoint(t_setpoint);
+            
+            % Use minimum length to avoid index mismatch
+            n = min(length(d_p.x), length(d_s.x));
+            
+            if n > 0
+                % Truncate to common length
+                p_x = d_p.x(1:n);
+                p_y = d_p.y(1:n);
+                p_z = d_p.z(1:n);
+                
+                s_x = d_s.x(1:n);
+                s_y = d_s.y(1:n);
+                s_z = d_s.z(1:n);
+                
+                err_x = p_x - s_x;
+                err_y = p_y - s_y;
+                err_z = p_z - s_z;
+                
+                sq_err = err_x.^2 + err_y.^2 + err_z.^2;
+                rmse = sqrt(mean(sq_err));
+            end
+        end
     end
+    
+    fprintf('%-10s %-15.2f %-15.2f %-15.2f %-15.4f\n', name, duration, distance, avg_speed, rmse);
 end
-
-% Add a dummy entry for Start/End markers in legend if needed
-plot(NaN, NaN, 'o', 'DisplayName', 'Start Pos');
-plot(NaN, NaN, 's', 'DisplayName', 'End Pos');
-
-legend('show', 'Location', 'northeastoutside', 'Interpreter', 'tex', 'FontSize', 16);
+fprintf('=========================================================================\n');
 
 %% Helper Functions
 function out = ParsePose(bag_selection)
