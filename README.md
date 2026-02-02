@@ -62,7 +62,7 @@ Please, configure:
    - `ros2_ws/src/crazyflie_robotics_projects_pkg/config/mission.yaml`
    - `ros2_ws/src/crazyflie_robotics_projects_pkg/config/crazyflie/custom_config.yaml`
 
-### Run System
+### Run System (Simulation)
 Run Gazebo:
 ```bash
 bash /root/Crazyflie-RoboticsProjects/tools/sitl_multiagent_text.sh -m crazyflie -f robots.txt -w empty_10x10
@@ -71,7 +71,23 @@ bash /root/Crazyflie-RoboticsProjects/tools/sitl_multiagent_text.sh -m crazyflie
 Run Crazyflie server:
 ```bash
 waitForCfsGazebo; sleep 2;
-ros2 launch crazyflie_robotics_projects_pkg crazyflie.launch.py backend:=cflib cf_config:=custom_config.yaml
+ros2 launch crazyflie_robotics_projects_pkg crazyflie.launch.py backend:=sim cf_config:=simulation_config.yaml
+```
+
+Run system:
+```bash
+ros2 launch crazyflie_robotics_projects_pkg run.launch.py
+```
+
+(optional) Run RViZ:
+```bash
+ros2 launch crazyflie_robotics_projects_pkg visualize.launch.py
+```
+
+### Run System (Hardware)
+Run Crazyflie server:
+```bash
+ros2 launch crazyflie_robotics_projects_pkg crazyflie.launch.py backend:=cflib cf_config:=hardware_config.yaml
 ```
 
 Run system:

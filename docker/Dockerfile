@@ -121,7 +121,8 @@ RUN  apt-get update \
 WORKDIR $HOME
 RUN  git clone https://github.com/gtfactslab/CrazySim.git --recursive \
     && cd $HOME/CrazySim/crazyflie-lib-python \
-    &&  pip install -e .
+    && pip install --upgrade pip \
+    && pip install -e .
 
 RUN pip install Jinja2
 RUN cd $HOME/CrazySim/crazyflie-firmware \
