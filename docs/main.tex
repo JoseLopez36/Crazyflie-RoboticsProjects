@@ -33,72 +33,104 @@ Seville, Spain}
 \maketitle
 
 \begin{abstract}
-This paper presents a comprehensive implementation of a Multi-Robot Coverage Path Planning (CPP) system using the Divide Areas Algorithm for Robotics Platforms (DARP). The system is designed for Crazyflie 2.1 drones and is implemented using the Robot Operating System 2 (ROS2). The architecture leverages a modular approach with dedicated nodes for path calculation, mission planning, and flight control. The proposed solution is validated through simulations in Gazebo, demonstrating efficient area coverage and obstacle avoidance capabilities in a multi-agent scenario.
+This paper presents the implementation of a coverage path planning algorithm combined with a divide-areas strategy for multi-UAV systems. The proposed approach is validated using Crazyflie UAVs operating in an indoor environment. The system is developed within the ROS 2 framework and relies on the Loco Positioning System for accurate indoor localization. The combination of area division and coverage path planning enables efficient space exploration while reducing overlap among multiple agents. Experimental results demonstrate the feasibility of the proposed solution for coordinated multi-UAV coverage tasks with the Crazyflies UAVs.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Coverage Path Planning, DARP, ROS2, Crazyflie, Multi-Robot Systems, Gazebo
+Crazyflie UAVs, Multi-Robot Systems, Coverage Path Planning, DARP, ROS2, Gazebo
 \end{IEEEkeywords}
 
 \section{Introduction}
-Coverage Path Planning (CPP) is a fundamental problem in mobile robotics, where the goal is to determine a path that passes over all points of an area of interest while avoiding obstacles. This capability is essential for various applications, including search and rescue operations, precision agriculture, floor cleaning, and environmental monitoring.
+In recent years, the use of unmanned aerial vehicles (UAVs) has increased significantly in applications such as inspection, exploration, mapping, and search and rescue. In particular, multi-UAV systems offer clear advantages over single-agent solutions by reducing mission completion time, increasing system robustness, and improving coverage efficiency. However, coordination of multiple UAVs remains a challenging problem.
 
-Multi-robot systems offer significant advantages over single-robot approaches, such as reduced execution time and increased robustness through redundancy. However, coordinating multiple robots introduces challenges in workload distribution and collision avoidance.
+Within this context, the coverage path planning (CPP), which is a fundamental problem in mobile robotics, aims to generate trajectories that ensure complete coverage of a target area while minimizing redundancy and inefficiencies. This is done by determining a path that passes over all points in the area of interest while avoiding obstacles. When extended to multi-UAV scenarios, CPP requires additional mechanisms to distribute the workload among agents in an effective manner. This capability is essential for various applications, including search and rescue operations, precision agriculture, floor cleaning, and environmental monitoring.
 
-This project addresses these challenges by integrating the Divide Areas Algorithm for Robotics Platforms (DARP) \cite{article} with the Crazyflie 2.1 drone platform. We utilize ROS2 \cite{macenski2022ros2} for inter-process communication and Gazebo \cite{koenig2004gazebo} for high-fidelity simulation. The system is designed to be modular, allowing for easy scalability and adaptation to different environments.
+This project addresses these challenges by integrating the Divide Areas Algorithm for Robotics Platforms (DARP) where the area of interest is partitioned into subregions assigned to individual UAVs. 
 
-The remainder of this paper is organized as follows: Section II reviews the state of the art in CPP. Section III details the system implementation and architecture. Section IV presents the simulation setup and results. Finally, Section V concludes the paper and discusses future work.
+This practical validation of such algorithms on real robotic platforms is essential to assess their feasibility beyond simulation. Micro-UAV platforms such as the Crazyflie 2.1 \cite{Kapoutsis} provide an appropriate testbed for research in aerial robotics due to their low cost, small size, and compatibility with modern robotic frameworks. In this work, the Crazyflie platform is integrated with ROS2 \cite{macenski2022ros2}, enabling modular development and scalable multi-agent control. Furthermore, accurate indoor localization is achieved through the Loco Positioning System, which provides reliable position estimates in GPS-denied environments.
+
+This paper presents the implementation of a coverage path planning algorithm combined with an area division strategy for multi-UAV systems experimentally evaluated in Gazebo \cite{koenig2004gazebo} for high-fidelity simulation and in an indoor environment equipped with the Loco Positioning System. The main objective is to demonstrate the feasibility of coordinated multi-UAV coverage missions using the Crazyflies and to analyze the system setup from a practical perspective, focusing on the challenges encountered during the implementation process and the solutions adopted to overcome them. This includes issues related to multi-UAV coordination, communication, localization, and integration within the ROS 2 framework, providing insights that may be valuable for future implementations on similar platforms.
+
+The remainder of this paper is organized as follows: Section II reviews the state of the art in Crazyflies and CPP. Section III details the system implementation and architecture. Section IV presents the simulation setup and results. Finally, Section V concludes the paper and discusses future work.
 
 \section{State of the Art}
-The CPP problem has been extensively studied in the literature. Approaches can be broadly categorized into heuristic, grid-based, and cellular decomposition methods.
+UAVs have been extensively studied in recent literature and continue to gain prominence in research due to their potential and implementation in different tasks.  
 
-Grid-based methods decompose the environment into a collection of uniform cells. This simplifies the representation but can lead to exponential complexity in high-resolution maps. Spanning Tree Coverage (STC) is a popular grid-based algorithm that guarantees complete coverage but is typically limited to single-robot scenarios or requires complex modifications for multi-robot teams.
 
-For multi-robot systems, the primary challenge is partitioning the area efficiently. The DARP algorithm, proposed by Kapoutsis et al., addresses this by dividing the grid into equal (or weighted) portions for each robot based on their initial positions. It uses a cyclic gradient optimization to ensure that each robot's assigned area is connected and obstacle-free. Once the area is partitioned, a spanning tree algorithm is used to generate the coverage path for each robot within its assigned zone.
 
-This project adopts DARP due to its ability to guarantee complete coverage, non-overlapping areas, and connectivity, which are critical for efficient multi-UAV operations.
+\section{System Implementation}
 
-\section{Implementation}
+The proposed system is developed within the ROS 2 (Robot Operating System 2) framework, leveraging its modularity and scalability for multi-robot applications. The architecture is designed to be agnostic to the underlying platform, supporting both high-fidelity simulation and real-world deployment on Crazyflie drones via the \texttt{crazyswarm2} interface.
 
 \subsection{System Architecture}
-The system is built upon ROS2 (Robot Operating System 2) and utilizes the \texttt{crazyswarm2} architecture for interfacing with the Crazyflie drones. The core logic is distributed across three custom ROS2 nodes: \texttt{darp\_node}, \texttt{planning\_node}, and \texttt{control\_node}. Figure \ref{fig:arch} (conceptual) illustrates the data flow between these components.
+The core logic is distributed across four custom ROS 2 nodes, each handling specific responsibilities in the coverage pipeline. The data flow and interaction between these components are described below.
 
-\subsection{DARP Node}
-The \texttt{darp\_node} encapsulates the DARP algorithm logic. It exposes a service \texttt{darp\_service} that accepts the mission parameters:
+\subsubsection{DARP Node}
+The \texttt{darp\_node} encapsulates the Divide Areas Algorithm for Robotics Platforms (DARP) logic. It functions as a service provider, exposing the \texttt{darp\_service}. Upon receiving a mission request containing the operational area dimensions, obstacle positions, and initial robot positions, the node performs the following operations:
 \begin{itemize}
-    \item Operational area dimensions (min/max X and Y).
-    \item Obstacle positions.
-    \item Initial positions of the robots.
+    \item Discretization: Converts continuous world coordinates into a discrete grid based on a configurable cell size.
+    \item Area Partitioning: Executes the DARP algorithm to divide the grid into equal, connected, and non-overlapping zones for each agent.
+    \item Path Generation: Computes a coverage path for each partition using a spanning tree algorithm.
+\end{itemize}
+The node returns the calculated trajectories (lists of waypoints) and a zone map, which encodes the area assignment for visualization, as illustrated in Fig. \ref{fig:darp}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\linewidth]{figures/DARP.png}
+\caption{DARP algorithm partitioning and trajectory generation in \textit{RViZ}.}
+\label{fig:darp}
+\end{figure}
+
+\subsubsection{Planning Node}
+The \texttt{planning\_node} acts as the central coordinator for the multi-robot team. Its primary roles include:
+\begin{itemize}
+    \item State Monitoring: Subscribes to the real-time position of all agents via \texttt{/agent\_id/state/position}.
+    \item Mission Orchestration: Waits for all agents to initialize before requesting a plan from the \texttt{darp\_node}. Once a solution is received, it distributes specific trajectories to each agent on their respective \texttt{/planning/trajectory} topics.
+    \item Dynamic Replanning: Maintains a global map of visited cells. If a replan is triggered, previously visited areas are treated as virtual obstacles in the subsequent DARP request, ensuring efficient coverage without redundancy.
 \end{itemize}
 
-Upon receiving a request, the node discretizes the continuous world coordinates into a grid based on a configurable \texttt{cell\_size}. It then executes the DARP algorithm to partition the grid and generate paths. The output consists of:
+\subsubsection{Control Node}
+A dedicated instance of the \texttt{control\_node} runs for each UAV, managing its flight lifecycle through a finite state machine (FSM). The FSM states are:
 \begin{itemize}
-    \item \textbf{Trajectories}: A list of waypoints for each robot.
-    \item \textbf{Zones}: A grid map indicating the assigned area for each robot, useful for visualization.
+    \item \textbf{INIT}: Performs system checks and sends initial setpoints.
+    \item \textbf{TAKEOFF}: Commands the drone to ascend to a target altitude using the \texttt{Takeoff} service.
+    \item \textbf{MISSION}: Executes the received trajectory. The node implements a path-following logic that switches to the next waypoint when the drone enters a defined acceptance radius of the current target.
+    \item \textbf{LANDING}: Automatically initiates a landing maneuver upon trajectory completion.
+    \item \textbf{LANDED}: Disarms the motors and terminates the operation.
 \end{itemize}
+This node interfaces with the lower-level flight controller via standard ROS 2 topics and services provided by the backend.
 
-The node handles the coordinate transformation between the metric world frame and the discrete grid indices required by DARP.
+\subsubsection{Visualization Node}
+The \texttt{visualization\_node} is responsible for generating visual feedback in \textit{RViZ}. It subscribes to agent positions, planned trajectories, and the zone grid, publishing corresponding \texttt{MarkerArray} messages. This allows for real-time monitoring of the coverage progress, grid partitioning, and flight paths.
 
-\subsection{Planning Node}
-The \texttt{planning\_node} acts as the central coordinator. Its responsibilities include:
+\subsection{Simulation Setup}
+The system was developed and validated in a Docker-based environment to ensure reproducibility. The simulation relies on Gazebo paired with the \texttt{crazyswarm2} software-in-the-loop (SITL) backend. This setup accurately models the Crazyflie dynamics and allows for testing complex multi-agent scenarios before real-world deployment.
+
+\subsection{Real-World Implementation}
+The experimental validation was conducted using real hardware to assess the system's performance in a physical environment. The setup consists of the following components:
+
+\subsubsection{Robotic Platform}
+The experiments utilize Crazyflie 2.1 nano-quadcopters. Each drone is equipped with:
 \begin{itemize}
-    \item \textbf{State Management}: It monitors the positions of all agents via \texttt{/agent\_id/state/position} topics.
-    \item \textbf{Mission Triggering}: It waits for all agents to be ready before requesting a plan from the \texttt{darp\_node}.
-    \item \textbf{Trajectory Distribution}: Once a solution is received, it publishes specific trajectories to each agent on \texttt{/agent\_id/planning/trajectory}.
-    \item \textbf{Dynamic Replanning}: The node supports replanning capabilities. It tracks visited cells and can treat them as obstacles in subsequent DARP requests, ensuring that previously covered areas are not repeated if a mission update is required.
+    \item Loco Positioning Deck: configured in TDoA2 (Time Difference of Arrival 2) mode. TDoA2 is selected over TWR (Two-Way Ranging) as it supports an unlimited number of listeners, making it scalable for multi-robot fleets.
+    \item Flow Deck v2: provides optical flow and a ToF (Time-of-Flight) distance sensor. While the Loco Positioning System provides 3D coordinates, the vertical (Z-axis) estimation can be noisy. The Flow Deck is used to fuse stable height measurements, ensuring consistent altitude hold during the mission.
 \end{itemize}
+Communication between the ground station and the swarm is handled by a Crazyradio 2.0 USB dongle.
 
-\subsection{Control Node}
-The \texttt{control\_node} runs an instance for each robot and manages the flight state machine. It subscribes to the assigned trajectory and the robot's current position. The internal state machine consists of the following states:
-\begin{enumerate}
-    \item \textbf{INIT}: Sends initial setpoints to prepare for takeoff.
-    \item \textbf{TAKEOFF}: Executes the takeoff maneuver to a target altitude.
-    \item \textbf{MISSION}: Follows the received trajectory waypoints. It implements a "stop-and-go" or continuous path following logic, switching to the next waypoint when the robot is within an \texttt{acceptance\_radius} of the current target.
-    \item \textbf{LANDING}: Initiates landing once the trajectory is completed.
-    \item \textbf{LANDED}: Disarms the drone and terminates the mission.
-\end{enumerate}
+\subsubsection{Localization System}
+An indoor localization infrastructure, the Loco Positioning System (LPS), was deployed using 8 Loco Positioning Nodes. To maximize the positioning volume and stability, the anchors were arranged in a cubic configuration encompassing the flight area. The nodes were placed at the following coordinates to create a diversified geometry:
+\begin{itemize}
+    \item Bottom Plane ($z \approx 0.75m$): Anchors at corners $(0,0)$, $(3.6, 0.0)$, $(0, 3.6)$, and $(3.6, 3.6)$.
+    \item Top Plane ($z \approx 2.25m$): Anchors vertically offset from the bottom plane to ensure good geometric distribution.
+\end{itemize}
+This setup, shown in Fig. \ref{fig:lps}, provides accurate position estimates required for the precise grid-based navigation demanded by the DARP algorithm.
 
-This node interfaces with the lower-level Crazyflie controllers via standard ROS2 topics and services (Takeoff, Land, Arm).
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/Loco_Positioning_System.png}
+\caption{Experimental setup with Crazyflie 2.1 and Loco Positioning System anchors.}
+\label{fig:lps}
+\end{figure}
 
 \section{Simulation and Results}
 
@@ -109,9 +141,26 @@ The system was validated using the Gazebo simulator integrated with \texttt{craz
     \item Multiple Crazyflie 2.1 models.
     \item Static obstacles placed within the area.
 \end{itemize}
+The simulation setup is depicted in Fig. \ref{fig:simulation}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/Simulation.png}
+\caption{Simulation environment in Gazebo with Crazyflie drones.}
+\label{fig:simulation}
+\end{figure}
 
 \subsection{Results}
-The experiments demonstrated the effectiveness of the DARP integration. 
+The experiments demonstrated the effectiveness of the DARP integration, with trajectory tracking performance summarized in Fig. \ref{fig:results}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.99\linewidth]{figures/Plot_Hardware_Success.png}
+\caption{Experimental results: trajectory tracking performance.}
+\label{fig:results}
+\end{figure}
+
+The specific outcomes include: 
 \begin{itemize}
     \item \textbf{Area Partitioning}: The algorithm successfully divided the available free space into distinct regions for each drone.
     \item \textbf{Coverage}: The generated paths covered all accessible cells within the assigned zones.
@@ -119,7 +168,7 @@ The experiments demonstrated the effectiveness of the DARP integration.
     \item \textbf{Replanning}: The system showed the capability to update plans dynamically by marking visited cells, although the primary focus was on static offline planning.
 \end{itemize}
 
-Visualizations in RViZ confirmed the alignment of the planned grid zones with the real-world positions of the drones.
+Visualizations in \textit{RViZ} confirmed the alignment of the planned grid zones with the real-world positions of the drones.
 
 \section{Conclusion}
 This paper presented a ROS2-based framework for multi-robot coverage path planning using Crazyflie drones. By integrating the DARP algorithm, we achieved an efficient division of labor among multiple agents. The modular architecture allows for easy extension, such as adding dynamic obstacle avoidance or scaling to a larger swarm. Future work will focus on deploying this system on physical Crazyflie hardware and implementing real-time decentralized coordination.
