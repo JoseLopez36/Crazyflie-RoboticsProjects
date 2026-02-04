@@ -8,26 +8,27 @@
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{float}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
 \title{Multi-Robot Coverage Path Planning using DARP on Crazyflie Drones}
 
-\author{\IEEEauthorblockN{1\textsuperscript{st} Jorge Prieto Álvarez}
+\author{
+\IEEEauthorblockN{Jorge Prieto Álvarez\textsuperscript{*}}
 \IEEEauthorblockA{\textit{MSc. in Electronics, Robotics and Automation Engineering} \\
-\textit{Universidad de Sevilla}\\
-Seville, Spain}
+\textit{Universidad de Sevilla}, Seville, Spain}
 \and
-\IEEEauthorblockN{2\textsuperscript{nd} Víctor Javier Granero Gil}
+\IEEEauthorblockN{Víctor Javier Granero Gil\textsuperscript{*}}
 \IEEEauthorblockA{\textit{MSc. in Electronics, Robotics and Automation Engineering} \\
-\textit{Universidad de Sevilla}\\
-Seville, Spain}
+\textit{Universidad de Sevilla}, Seville, Spain}
 \and
-\IEEEauthorblockN{3\textsuperscript{rd} José Francisco López Ruiz}
+\IEEEauthorblockN{José Francisco López Ruiz\textsuperscript{*}}
 \IEEEauthorblockA{\textit{MSc. in Electronics, Robotics and Automation Engineering} \\
-\textit{Universidad de Sevilla}\\
-Seville, Spain}
+\textit{Universidad de Sevilla}, Seville, Spain}
+\thanks{\textsuperscript{*}These authors contributed equally to this work.}
 }
 
 \maketitle
@@ -45,20 +46,37 @@ In recent years, the use of unmanned aerial vehicles (UAVs) has increased signif
 
 Within this context, the coverage path planning (CPP), which is a fundamental problem in mobile robotics, aims to generate trajectories that ensure complete coverage of a target area while minimizing redundancy and inefficiencies. This is done by determining a path that passes over all points in the area of interest while avoiding obstacles. When extended to multi-UAV scenarios, CPP requires additional mechanisms to distribute the workload among agents in an effective manner. This capability is essential for various applications, including search and rescue operations, precision agriculture, floor cleaning, and environmental monitoring.
 
-This project addresses these challenges by integrating the Divide Areas Algorithm for Robotics Platforms (DARP) where the area of interest is partitioned into subregions assigned to individual UAVs. 
+This project addresses these challenges by integrating the Divide Areas Algorithm for Robotics Platforms (DARP) \cite{Kapoutsis} where the area of interest is partitioned into subregions assigned to individual UAVs. 
 
-This practical validation of such algorithms on real robotic platforms is essential to assess their feasibility beyond simulation. Micro-UAV platforms such as the Crazyflie 2.1 \cite{Kapoutsis} provide an appropriate testbed for research in aerial robotics due to their low cost, small size, and compatibility with modern robotic frameworks. In this work, the Crazyflie platform is integrated with ROS2 \cite{macenski2022ros2}, enabling modular development and scalable multi-agent control. Furthermore, accurate indoor localization is achieved through the Loco Positioning System, which provides reliable position estimates in GPS-denied environments.
+The practical validation of such algorithms on real robotic platforms is essential to assess their feasibility beyond simulation. Micro-UAV platforms such as the Crazyflie 2.1 \cite{8046794} provide an appropriate testbed for research in aerial robotics due to their low cost, small size, and compatibility with modern robotic frameworks. In this work, the Crazyflie platform is integrated with ROS2 \cite{macenski2022ros2}, enabling modular development and scalable multi-agent control. Furthermore, accurate indoor localization is achieved through the Loco Positioning System, which provides reliable position estimates in GPS-denied environments.
 
-This paper presents the implementation of a coverage path planning algorithm combined with an area division strategy for multi-UAV systems experimentally evaluated in Gazebo \cite{koenig2004gazebo} for high-fidelity simulation and in an indoor environment equipped with the Loco Positioning System. The main objective is to demonstrate the feasibility of coordinated multi-UAV coverage missions using the Crazyflies and to analyze the system setup from a practical perspective, focusing on the challenges encountered during the implementation process and the solutions adopted to overcome them. This includes issues related to multi-UAV coordination, communication, localization, and integration within the ROS 2 framework, providing insights that may be valuable for future implementations on similar platforms.
+This paper presents the implementation of a coverage path planning algorithm combined with an area division strategy for multi-UAV systems experimentally evaluated in Gazebo \cite{koenig2004gazebo} for high-fidelity simulation and in an indoor environment equipped with the Loco Positioning System. The main objective is to demonstrate the feasibility of coordinated multi-UAV coverage missions using the Crazyflies and to analyze the system setup from a practical perspective, focusing on the challenges encountered during the implementation process and the solutions adopted to overcome them. This includes issues related to multi-UAV coordination, communication, localization, and integration within the ROS 2 framework, providing insights that may be valuable for future implementations on similar platforms. 
 
-The remainder of this paper is organized as follows: Section II reviews the state of the art in Crazyflies and CPP. Section III details the system implementation and architecture. Section IV presents the simulation setup and results. Finally, Section V concludes the paper and discusses future work.
+The source code for this project is publicly available at \url{https://github.com/JoseLopez36/Crazyflie-RoboticsProjects}.
+
+The remainder of this paper is organized as follows: Section II reviews the state of the art in Crazyflies. Section III details the system implementation and architecture. Section IV presents the simulation setup and results. Finally, Section V concludes the paper and discusses future work.
 
 \section{State of the Art}
-UAVs have been extensively studied in recent literature and continue to gain prominence in research due to their potential and implementation in different tasks.  
+UAVs have been widely studied in recent years and continue to gain prominence in the research community because of their versatility and potential to be deployed in projects of a diverse nature, performing a wide range of tasks. This growing is partly driven by continuous advancements in robotics and micro-robotics, which have significantly lowered the entry barrier for research and experimentation. In particular, the emergence of low-cost platforms with high performance capabilities, such as the Crazyflie, has greatly improved accessibility to UAV technologies in both educational and research contexts. 
+
+\subsection{Educational context}
+In the educational context, the Crazyflie has gained recognition as an accessible, easy-to-assemble platform for beginners, providing a first practical contact with the fields of robotics and UAVs. Its educational potential is increasingly highlighted in technical events, such as the 2024 Jornadas de Automática organised by the Comité Español de Automática, where Caballero-Martín et al. \cite{CaballeroMartin2024} showcased the advantages and practical benefits offered by the Crazyflie platform for learning and experimentation providing an overview of Crazyflie, its sensors and positioning systems, as well as the application of a PID controller.
+
+In accordance with the educational objectives, Rafael Xavier Silva Cunha and Daniel Costa Ramos in their work \cite{11249570} present an indoor experimental environment for UAV navigation to use in research and education. This integration utilizes the Loco Positioning System and allows students and researchers to conduct safe and scalable experiments in both simulated and physical settings.
+
+\subsection{Research context}
+Beyond its role in education, Crazyflie has been involved in various research contexts that are directly relevant to this work. Such as coverage planning.  
+
+For example, the work of Ana María Casado et al. \cite{10.1117/12.3063062} introduces a multi-UAV area coverage algorithm that leverages local inter-UAV interactions to achieve faster convergence. Using computational geometry techniques, the algorithm estimates uncovered regions and subsequently guides the UAVs toward those areas.
+
+Along similar lines, the work of Alexandru Conţac and Adrian Burlacu \cite{11240487} leverages Crazyflie micro-UAVs to develop an integrated framework for adaptive motion planning in complex indoor environments for small-scale aerial platforms.
+
+
+May the work presented serve as sufficient and necessary justification for carrying out this work within the Crazyflie framework. Furthermore, we hope this work provide support or a baseline for future work based on the findings presented herein. 
 
 
 
-\section{System Implementation}
+\section{System Implementation} \label{sec:System Implementation}
 
 The proposed system is developed within the ROS 2 (Robot Operating System 2) framework, leveraging its modularity and scalability for multi-robot applications. The architecture is designed to be agnostic to the underlying platform, supporting both high-fidelity simulation and real-world deployment on Crazyflie drones via the \texttt{crazyswarm2} interface.
 
@@ -77,7 +95,7 @@ The node returns the calculated trajectories (lists of waypoints) and a zone map
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.8\linewidth]{figures/DARP.png}
-\caption{DARP algorithm partitioning and trajectory generation in \textit{RViZ}.}
+\caption{DARP algorithm partitioning and trajectory generation in RViZ.}
 \label{fig:darp}
 \end{figure}
 
@@ -101,24 +119,31 @@ A dedicated instance of the \texttt{control\_node} runs for each UAV, managing i
 This node interfaces with the lower-level flight controller via standard ROS 2 topics and services provided by the backend.
 
 \subsubsection{Visualization Node}
-The \texttt{visualization\_node} is responsible for generating visual feedback in \textit{RViZ}. It subscribes to agent positions, planned trajectories, and the zone grid, publishing corresponding \texttt{MarkerArray} messages. This allows for real-time monitoring of the coverage progress, grid partitioning, and flight paths.
+The \texttt{visualization\_node} is responsible for generating visual feedback in RViZ. It subscribes to agent positions, planned trajectories, and the zone grid, publishing corresponding \texttt{MarkerArray} messages. This allows for real-time monitoring of the coverage progress, grid partitioning, and flight paths.
 
 \subsection{Simulation Setup}
-The system was developed and validated in a Docker-based environment to ensure reproducibility. The simulation relies on Gazebo paired with the \texttt{crazyswarm2} software-in-the-loop (SITL) backend. This setup accurately models the Crazyflie dynamics and allows for testing complex multi-agent scenarios before real-world deployment.
+The system was developed and validated in a Docker-based environment to ensure reproducibility. The simulation relies on Gazebo paired with the \texttt{crazyswarm2} software-in-the-loop (SITL) backend. This setup accurately models the Crazyflie dynamics and allows for testing complex multi-agent scenarios before real-world deployment. The simulation setup is depicted in Fig. \ref{fig:simulation}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/Simulation.png}
+\caption{Simulation environment in Gazebo with Crazyflie drones.}
+\label{fig:simulation}
+\end{figure}
 
 \subsection{Real-World Implementation}
 The experimental validation was conducted using real hardware to assess the system's performance in a physical environment. The setup consists of the following components:
 
 \subsubsection{Robotic Platform}
-The experiments utilize Crazyflie 2.1 nano-quadcopters. Each drone is equipped with:
+The experiments utilize Crazyflie 2.1\footnote{\url{https://www.bitcraze.io/products/old-products/crazyflie-2-1/}} nano-quadcopters. Each drone is equipped with:
 \begin{itemize}
-    \item Loco Positioning Deck: configured in TDoA2 (Time Difference of Arrival 2) mode. TDoA2 is selected over TWR (Two-Way Ranging) as it supports an unlimited number of listeners, making it scalable for multi-robot fleets.
-    \item Flow Deck v2: provides optical flow and a ToF (Time-of-Flight) distance sensor. While the Loco Positioning System provides 3D coordinates, the vertical (Z-axis) estimation can be noisy. The Flow Deck is used to fuse stable height measurements, ensuring consistent altitude hold during the mission.
+    \item Loco Positioning Deck\footnote{\url{https://www.bitcraze.io/products/loco-positioning-deck/}}: configured in TDoA2 (Time Difference of Arrival 2) mode. TDoA2 is selected over TWR (Two-Way Ranging) as it supports an unlimited number of listeners, making it scalable for multi-robot fleets.
+    \item Flow Deck v2\footnote{\url{https://store.bitcraze.io/products/flow-deck-v2}}: provides optical flow and a ToF (Time-of-Flight) distance sensor. While the Loco Positioning System provides 3D coordinates, the vertical (Z-axis) estimation can be noisy. The Flow Deck is used to fuse stable height measurements, ensuring consistent altitude hold during the mission.
 \end{itemize}
-Communication between the ground station and the swarm is handled by a Crazyradio 2.0 USB dongle.
+Communication between the ground station and the swarm is handled by a Crazyradio 2.0\footnote{\url{https://www.bitcraze.io/products/crazyradio-2-0/}} USB dongle.
 
 \subsubsection{Localization System}
-An indoor localization infrastructure, the Loco Positioning System (LPS), was deployed using 8 Loco Positioning Nodes. To maximize the positioning volume and stability, the anchors were arranged in a cubic configuration encompassing the flight area. The nodes were placed at the following coordinates to create a diversified geometry:
+An indoor localization infrastructure, the Loco Positioning System (LPS), was deployed using 8 Loco Positioning Nodes\footnote{\url{https://www.bitcraze.io/products/loco-positioning-node/}}. To maximize the positioning volume and stability, the anchors were arranged in a cubic configuration encompassing the flight area. The nodes were placed at the following coordinates to create a diversified geometry:
 \begin{itemize}
     \item Bottom Plane ($z \approx 0.75m$): Anchors at corners $(0,0)$, $(3.6, 0.0)$, $(0, 3.6)$, and $(3.6, 3.6)$.
     \item Top Plane ($z \approx 2.25m$): Anchors vertically offset from the bottom plane to ensure good geometric distribution.
@@ -132,47 +157,88 @@ This setup, shown in Fig. \ref{fig:lps}, provides accurate position estimates re
 \label{fig:lps}
 \end{figure}
 
-\section{Simulation and Results}
+\section{Results and Discussion}
 
-\subsection{Simulation Environment}
-The system was validated using the Gazebo simulator integrated with \texttt{crazyswarm2}. The simulation environment was configured with:
-\begin{itemize}
-    \item A defined workspace (e.g., $10 \times 10$ meters).
-    \item Multiple Crazyflie 2.1 models.
-    \item Static obstacles placed within the area.
-\end{itemize}
-The simulation setup is depicted in Fig. \ref{fig:simulation}.
+The transition from simulation to real hardware revealed significant practical challenges, mainly regarding localization precision and hardware reliability. The experimental validation was performed using two Crazyflie 2.1 drones in a $3.6 \times 3.6$ m flight area, with the Loco Positioning System (LPS) configured in TDoA2 mode to support multi-agent scalability as detailed in section \ref{sec:System Implementation}.
+
+To evaluate system performances, two experimental runs were chosen as representative case: a nominal run, in which the mission was completed successfully, and a degraded run, where the task could not be fully accomplished. This comparison helps identify the practical operational limits of the proposed approach.
+
+
+\subsubsection{Nominal Mission Analysis}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\linewidth]{figures/Simulation.png}
-\caption{Simulation environment in Gazebo with Crazyflie drones.}
-\label{fig:simulation}
+\includegraphics[width=0.92\linewidth]{figures/Plot_Hardware_Success.png}
+\caption{Experimental results: nominal trajectory tracking performance.}
+\label{fig:results-success}
 \end{figure}
-
-\subsection{Results}
-The experiments demonstrated the effectiveness of the DARP integration, with trajectory tracking performance summarized in Fig. \ref{fig:results}.
-
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.99\linewidth]{figures/Plot_Hardware_Success.png}
-\caption{Experimental results: trajectory tracking performance.}
-\label{fig:results}
+\includegraphics[width=0.92\linewidth]{figures/Plot_Hardware_Degraded.png}
+\caption{Experimental results: degraded trajectory tracking performance.}
+\label{fig:results-degraded}
 \end{figure}
 
-The specific outcomes include: 
-\begin{itemize}
-    \item \textbf{Area Partitioning}: The algorithm successfully divided the available free space into distinct regions for each drone.
-    \item \textbf{Coverage}: The generated paths covered all accessible cells within the assigned zones.
-    \item \textbf{Execution}: The \texttt{control\_node} successfully guided the drones through the generated waypoints with stable flight behavior.
-    \item \textbf{Replanning}: The system showed the capability to update plans dynamically by marking visited cells, although the primary focus was on static offline planning.
-\end{itemize}
+As ilustrated in Fig. \ref{fig:results-success}, both agents were able to cover their assigned DARP regions, although noticeable deviations from the reference trajectories were observed. These deviations are mainly attributed to measurement noise introduced by the UWB-based localization system. The quantitative performance indicators are summarized in Tab. \ref{table:nominal_metrics}.
 
-Visualizations in \textit{RViZ} confirmed the alignment of the planned grid zones with the real-world positions of the drones.
+\begin{table}[H]
+\centering
+\caption{Nominal Flight Performance Metrics}
+\label{table:nominal_metrics}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Robot} & \textbf{Duration [s]} & \textbf{Distance [m]} & \textbf{Avg Speed [m/s]} & \textbf{RMSE [m]} \\ \midrule
+cf\_0 & 35.99 & 12.85 & 0.36 & 1.0317 \\
+cf\_1 & 35.98 & 10.33 & 0.29 & 1.1950 \\ \bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Although RMSE values were relatively high, the system remained stable and completed the coverage task, showing tolerance to localization uncertainty.
+
+\subsubsection{Degraded Mission Analysis}
+
+
+In contrast, the degraded experiment shows unstable trajectories and incomplete coverage of the assigned regions. As shown in Tab \ref{table:degraded_metrics} , both platforms experienced an increase in tracking error together with shorter flight durations, indicating premature termination of the mission.
+
+\begin{table}[H]
+\centering
+\caption{Degraded Flight Performance Metrics (Failure Case)}
+\label{table:degraded_metrics}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Robot} & \textbf{Duration [s]} & \textbf{Distance [m]} & \textbf{Avg Speed [m/s]} & \textbf{RMSE [m]} \\ \midrule
+cf\_0 & 20.79 & 6.23 & 0.30 & 1.2577 \\
+cf\_1 & 22.48 & 8.38 & 0.37 & 1.3239 \\ \bottomrule
+\end{tabular}%
+}
+\end{table}
+
+This performance degradation exposes a critical operating limit: as battery voltage decreases, the controller’s capacity to compensate for TDoA2-related noise and communication delays is significantly reduced. The associated drop in thrust-to-weight ratio destabilizes state estimation and produces trajectory deviations that exceed the tolerance of the DARP grid, ultimately causing mission failure.
+
+
+\subsubsection{Final Discussion}
+
+The discrepancy between the flights, both usin the TDoA2 protocol, allows for a deep technical critique of the system's limitations:
+ 
+\begin{itemize}
+    \item \textbf{Battery-induced instability}: The failure in flight 2 was primarily caused by battery depletion after consecutive flights.  As the voltage decreases, the Crazyflie's thrust-to-weight ratio decreases, making the drone unable to compensate for the high-frequency noise inherent in LPS.
+    \item \textbf{Localization accuracy limits of TDoA2}: Both experiments consistently exhibited RMSE values above 1 m.This confirms that while TDoA2 allows for an unlimited number of agents, it introduces a noise floor that is often of the same order of magnitude as the acceptance radius used for waypoint switching. This results in the "oscillating" behavior observed in the plots as drones struggle to reach the precision required.
+    \item \textbf{Multi-agent communication and interference}: We observed that precision is lower when two drones fly simultaneously compared to single-agent tests. Beyond UWB congestion, a significant factor is the use of a single Crazyradio 2.0 dongle to manage both agents on the same frequency channel. This setup forces the radio to multiplex communication across different addresses, leading to increased latency and a higher rate of packet los, contributing to the higher $RMSE$ observed in multi-agent tests.
+    \item \textbf{Importance of Flow Deck v2}: The Flow Deck v2 played a vital role in maintaining flight stability. In degraded battery states, the fusion of optical flow and ToF (Time-of-Flight) altitude data was the only factor preventing immediate ground collisions due to Z-axis noise from the LPS.
+\end{itemize}
 
 \section{Conclusion}
-This paper presented a ROS2-based framework for multi-robot coverage path planning using Crazyflie drones. By integrating the DARP algorithm, we achieved an efficient division of labor among multiple agents. The modular architecture allows for easy extension, such as adding dynamic obstacle avoidance or scaling to a larger swarm. Future work will focus on deploying this system on physical Crazyflie hardware and implementing real-time decentralized coordination.
+This paper presented the successful implementation of a multi-UAV coverage path planning framework using the DARP algorithm and ROS 2. The proposed system was validated through both high-fidelity simulations and real-world experiments in an indoor environment using Crazyflie 2.1 drones and the Loco Positioning System.
+The experimental results demonstrate that the combination of area division and grid-based path planning effectively ensures complete coverage while preventing agent overlap. However, the transition from simulation to physical hardware revealed a significant trade-off between scalability and localization precision:
 
+\begin{itemize}
+    \item \textbf{System feasibility}: The architecture proved robust enough to maintain coordinated flight behavior even with a localization noise floor exceeding 1 meter $RMSE$ in TDoA2 mode.
+    \item \textbf{Hardware constraints}: We identified battery depletion and the resulting voltage drops as the primary causes of mission failure. These factors compromised the flight controller's stability, leading to the erratic trajectories and premature mission termination observed in degraded trials.
+    \item \textbf{Communication and stability}: The use of a single Crazyradio 2.0 for multiple agents introduced latency that, coupled with the inherent noise of the LPS, challenged the stability of the EKF. Furthermore, the Flow Deck v2 was found to be indispensable for maintaining altitude hold in these power-constrained scenarios.
+    \end{itemize}
 \section*{Acknowledgment}
 The authors would like to thank the teaching staff of the Robotics Projects course for their guidance and support.
 
