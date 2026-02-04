@@ -121,6 +121,15 @@ This node interfaces with the lower-level flight controller via standard ROS 2 t
 \subsubsection{Visualization Node}
 The \texttt{visualization\_node} is responsible for generating visual feedback in RViZ. It subscribes to agent positions, planned trajectories, and the zone grid, publishing corresponding \texttt{MarkerArray} messages. This allows for real-time monitoring of the coverage progress, grid partitioning, and flight paths.
 
+Fig. \ref{fig:architecture} displays the architecture described.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/System_Architecture.png}
+\caption{System architecture implemented in ROS 2.}
+\label{fig:architecture}
+\end{figure}
+
 \subsection{Simulation Setup}
 The system was developed and validated in a Docker-based environment to ensure reproducibility. The simulation relies on Gazebo paired with the \texttt{crazyswarm2} software-in-the-loop (SITL) backend. This setup accurately models the Crazyflie dynamics and allows for testing complex multi-agent scenarios before real-world deployment. The simulation setup is depicted in Fig. \ref{fig:simulation}.
 
